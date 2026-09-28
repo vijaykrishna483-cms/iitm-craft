@@ -1,45 +1,61 @@
 # IITM Craft
 
-A Minecraft-style voxel game of the **IIT Madras** campus, built with [three.js](https://threejs.org). It's a single HTML file with no build step and no image assets.
+A multiplayer voxel game of the **IIT Madras** campus, built with [three.js](https://threejs.org) and a small Node.js WebSocket server.
 
-The campus layout follows the institute's published *Layout of Buildings* map (July 2021), scaled to about 5 m per block. Bonn Avenue and Delhi Avenue run from the Main Gate down to Gajendra Circle, with the academic zone to the west, the hostel zone to the south, the lakes in the eastern forest, and the Research Park beyond the RP ramp.
+Walk the campus as a student, ride the e-buggies and bicycles, meet the deer and monkeys, and chat with other players who are online at the same time.
+
+The layout follows the institute's published *Layout of Buildings* map (July 2021), scaled to about 5 m per block: Bonn Avenue and Delhi Avenue run from the Main Gate to Gajendra Circle, the academic zone is to the west, the hostel zone to the south, the lakes are in the eastern forest, and the Research Park lies beyond the RP ramp.
 
 > Fan-made project, not affiliated with IIT Madras.
 
-## Play
-Open `index.html` in Chrome, Edge or Firefox on a desktop. It needs an internet connection the first time to load three.js and the fonts.
+## Run it
+```bash
+npm install
+npm start            # http://localhost:8787
+```
+Open the address in a desktop browser, enter a name, pick a boy or girl student and start exploring. Open a second tab (or share the address on your network) to see multiplayer in action.
 
-## What's on campus
-**85 places**, each with a signboard, including:
-- **Gates:** Main Gate, Velachery Gate, Taramani Gate
-- **Academic zone:** Gajendra Circle, Administrative Block, Central Library, HSB, CLT, MSB, ESB, New Academic Complex I and II, IC&SR, CFI, department buildings, hospital, Chemplast Cricket Ground, sports fields
-- **Hostel zone:** all the major hostels (Mandakini, Sindhu, Pampa, Tamiraparani, Mahanadhi, Ganga, Jamuna, Narmada, Godavari, Cauvery, Krishna, Brahmaputra and more), Himalaya, Vindhya and Nilgiri messes, OAT, SAC, swimming pool, Sangam Ground
-- **Residential zone:** Vanavani School, Kendriya Vidyalaya, Watsa Stadium, temples, Shopping Centre, banks, staff quarters, Campus Lake
-- **IITM Research Park**
+Opening `index.html` directly also works for single-player; it tries to connect to `localhost:8787` and plays offline if no server is running.
 
-## Goals
-- Discover all 85 places
-- Greet 12 deer (spotted deer and blackbuck). Approach slowly, because sprinting scares them
+## Features
+- **85 campus places**, each with a signboard: gates, departments, all the major hostels, messes, OAT, SAC, grounds, temples, schools, banks, Research Park
+- **Third-person student**, boy or girl, with walk, run, jump and fly animations
+- **18 e-buggies** at campus stops and **90+ bicycles** at hostel and academic stands
+- **60 deer** (spotted deer and blackbuck) and **40 bonnet macaques**
+- **Multiplayer:** live player count, name tags, smooth movement, shared vehicles (one rider at a time)
+- **Chat:** walk up to someone, press `E` to send a request; if they accept, a chat window opens for both
+- **Campus map** with fast travel to places you've discovered
+- Day/night cycle, and automatic quality scaling on slower machines
 
 ## Controls
 | Key | Action |
 |---|---|
-| `WASD` | Move |
-| `Space` | Jump / swim / fly up |
-| `Shift` | Sprint / fly down |
+| `WASD` | Walk / drive |
+| Mouse | Look around (click the game to capture the mouse) |
+| `Space` | Jump · brake while driving |
+| `Shift` | Sprint |
+| `E` | Drive, ride, greet a deer, wave at a monkey, or start a chat |
+| `H` | Horn (e-buggy) or bell (bicycle) |
 | `F` | Toggle flying |
-| `M` | Campus map (click a discovered place to travel there) |
+| `M` | Campus map |
 | `T` | Switch between day and night |
-| Left click | Break a block / greet a deer |
-| Right click | Place a block |
-| Middle click | Pick a block |
-| `1-9` / scroll | Choose a block |
+| Scroll | Camera zoom |
+| `Enter` / `X` | Type a chat message / end the chat |
+| `Y` / `N` | Accept / decline a chat request |
 | `Esc` | Pause |
 
-## Tech notes
-- 480 × 528 × 48 voxel world in 16×16 chunks, face culling and per-vertex ambient occlusion
-- Procedural 16 px texture atlas drawn at startup
-- Buildings are auto-placed near their map coordinates without overlapping roads or each other
-- `index.html?debug` exposes `window.iitm` for automated testing
+## Tests
+```bash
+npm test
+```
+Runs 81 end-to-end checks with Playwright against a fresh server: world generation, walking, jumping, collisions, discovery, the map, driving and cycling, wildlife, flying, day/night, two-player presence, movement sync, chat request/accept/decline/messages, vehicle occupancy, leaving, and server input validation and rate limiting.
+
+## How it works
+- `index.html`: the whole client (world generation, meshing, gameplay, UI, networking)
+- `server/server.js`: serves the page, and relays positions at 10 Hz, vehicle occupancy and 1:1 chat
+- The server validates every message: names are sanitised, positions must be inside the world, chat only flows between players who both agreed, and clients that flood messages are disconnected
+
+## Deploying
+Any Node host with WebSocket support works (Render, Railway, Fly.io, a VPS). Use `npm start` as the start command; the server reads `PORT` from the environment. `MAX_PLAYERS` (default 150) caps concurrent players.
 
 See [PLAN.md](PLAN.md) for the roadmap.

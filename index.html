@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>IITM Craft</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect width=%2716%27 height=%2716%27 rx=%273%27 fill=%27%2310353a%27/%3E%3Crect x=%274%27 y=%274%27 width=%278%27 height=%278%27 fill=%27%23e8c170%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,10 +25,10 @@
   #hud{position:fixed;inset:0;pointer-events:none}
   #brand{position:absolute;top:18px;left:20px;display:flex;align-items:center;gap:12px}
   #brand .mark{font:700 17px var(--serif);letter-spacing:.06em;text-shadow:0 1px 8px rgba(0,0,0,.35)}
-  .pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font:500 13px var(--sans);backdrop-filter:blur(8px);display:flex;gap:6px;align-items:baseline}
+  .pill{background:rgba(15,50,54,.94);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font:500 13px var(--sans);display:flex;gap:6px;align-items:baseline}
   .pill b{font:700 14px var(--sans);color:var(--gold);font-variant-numeric:tabular-nums}
   #tools{position:absolute;top:16px;right:18px;display:flex;gap:8px;pointer-events:auto}
-  .icon{width:40px;height:40px;border-radius:50%;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;color:var(--cream);backdrop-filter:blur(8px);position:relative}
+  .icon{width:40px;height:40px;border-radius:50%;background:rgba(15,50,54,.94);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;color:var(--cream);position:relative}
   .icon:hover{border-color:var(--gold)}
   .icon svg{width:18px;height:18px}
   .icon span{position:absolute;top:46px;right:0;white-space:nowrap;font:500 11px var(--sans);color:var(--muted);opacity:0;transition:.2s}
@@ -37,7 +38,7 @@
   #place .eyebrow{margin-bottom:6px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
   #place .name{font:600 30px/1.1 var(--serif);text-shadow:0 2px 14px rgba(0,0,0,.45);transition:opacity .3s}
   #mode{position:absolute;right:20px;bottom:22px}
-  #prompt{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 18px 8px 9px;font:600 14px var(--sans);backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  #prompt{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(15,50,54,.94);border:1px solid var(--line);border-radius:999px;padding:8px 18px 8px 9px;font:600 14px var(--sans);box-shadow:0 8px 24px rgba(0,0,0,.2)}
   #prompt kbd{background:var(--gold);color:#1c2a22;border-color:var(--gold-deep);font-size:12px;padding:3px 8px}
   .field-label{font:600 12px var(--sans);color:var(--muted);margin:0 0 8px}
   .pick{display:flex;gap:10px;margin-bottom:20px}
@@ -47,9 +48,33 @@
   .av:before{content:"";position:absolute;left:5px;top:0;width:16px;height:14px;background:#c68a5c;border-top:4px solid #1c1511;border-radius:2px}
   .av:after{content:"";position:absolute;left:3px;top:17px;width:20px;height:21px;background:linear-gradient(var(--top) 55%,var(--bot) 55%);border-radius:2px}
   .av.girl:before{box-shadow:-3px 4px 0 -1px #1c1511,3px 4px 0 -1px #1c1511}
+  .online .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6fd08c;box-shadow:0 0 0 3px rgba(111,208,140,.2);align-self:center}
+  .online.off .dot{background:#8a9894;box-shadow:none}
+  .online b{color:var(--cream)!important}
+  .text{width:100%;background:rgba(0,0,0,.2);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--cream);font:500 15px var(--sans);margin-bottom:18px;outline:none}
+  .text:focus{border-color:var(--gold)}
+  #liveCount{margin-left:14px;font:500 13px var(--sans);color:var(--muted)}
+  #chatreq{position:absolute;top:110px;right:18px;width:290px;background:rgba(15,50,54,.94);border:1px solid var(--gold);border-radius:14px;padding:14px 16px;pointer-events:auto;animation:tin .3s ease-out}
+  #chatreq .req{font:500 14px/1.45 var(--sans);margin:8px 0 12px}
+  #chatreq .req b{font:600 17px var(--serif)}
+  .reqbtns{display:flex;gap:8px}
+  .btn.sm,.ghost.sm{padding:8px 12px;font-size:13px;box-shadow:none}
+  .btn.sm kbd{background:rgba(0,0,0,.12);color:#1c2a22;border-color:transparent}
+  #chat{position:absolute;right:18px;bottom:78px;width:320px;height:340px;display:flex;flex-direction:column;background:rgba(15,50,54,.94);border:1px solid var(--line);border-radius:16px;pointer-events:auto;overflow:hidden}
+  #chat header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+  #chat header b{font:600 17px var(--serif)}
+  #chatClose{background:none;border:0;color:var(--muted);font-size:24px;cursor:pointer;line-height:1}
+  #chatLog{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:7px}
+  .line{font:400 13.5px/1.4 var(--sans);background:rgba(0,0,0,.18);border-radius:10px;padding:7px 10px;max-width:88%;align-self:flex-start;word-wrap:break-word}
+  .line b{display:block;font:600 11px var(--sans);color:var(--gold);margin-bottom:2px}
+  .line.mine{align-self:flex-end;background:rgba(232,193,112,.16)}
+  .line.sys{align-self:center;background:none;color:var(--muted);font-size:12px;text-align:center}
+  #chatInput{margin:0 12px;background:rgba(0,0,0,.22);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--cream);font:500 13.5px var(--sans);outline:none}
+  #chatInput:focus{border-color:var(--gold)}
+  .chathint{padding:7px 14px 10px;font:500 11px var(--sans);color:var(--muted)}
   #hint{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);font:500 13px var(--sans);color:var(--cream);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;transition:opacity .6s}
   #toasts{position:absolute;top:18px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;width:min(400px,86vw)}
-  .toast{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px 13px;backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.25);animation:tin .35s ease-out}
+  .toast{background:rgba(15,50,54,.94);border:1px solid var(--line);border-radius:14px;padding:12px 16px 13px;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:tin .35s ease-out}
   .toast h4{margin:6px 0 3px;font:600 20px/1.2 var(--serif)}
   .toast p{margin:0;font:400 13px/1.5 var(--sans);color:var(--muted)}
   .toast.out{opacity:0;transform:translateY(-6px);transition:.4s}
@@ -95,7 +120,7 @@
 </head>
 <body>
 <div id="hud" class="hidden">
-  <div id="brand"><div class="mark">IITM CRAFT</div><div class="pill">Places <b id="cPlaces">0</b></div><div class="pill">Deer <b id="cDeer">0</b></div></div>
+  <div id="brand"><div class="mark">IITM CRAFT</div><div class="pill">Places <b id="cPlaces">0</b></div><div class="pill">Deer <b id="cDeer">0</b></div><div class="pill online off" id="onlinePill"><i class="dot"></i><b id="cOnline">Offline</b></div></div>
   <div id="tools">
     <div class="icon" id="bMap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg><span>Map · M</span></div>
     <div class="icon" id="bTime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Time · T</span></div>
@@ -106,6 +131,17 @@
   <div id="place"><div class="eyebrow" id="pZone">Sardar Patel Road</div><div class="name" id="pName">Outside the Main Gate</div></div>
   <div id="mode" class="pill">Walking</div>
   <div id="hint">Press <kbd>M</kbd> for the campus map</div>
+  <div id="chatreq" class="hidden">
+    <div class="eyebrow">Chat request</div>
+    <div class="req"><b id="reqName"></b> wants to chat with you</div>
+    <div class="reqbtns"><button class="btn sm" id="reqYes"><kbd>Y</kbd> Accept</button><button class="ghost sm" id="reqNo"><kbd>N</kbd> Decline</button></div>
+  </div>
+  <div id="chat" class="hidden">
+    <header><div><div class="eyebrow">Chatting with</div><b id="chatName"></b></div><button id="chatClose" title="End chat (X)">&times;</button></header>
+    <div id="chatLog"></div>
+    <input id="chatInput" maxlength="240" placeholder="Press Enter to type" autocomplete="off">
+    <div class="chathint"><kbd>Enter</kbd> type &middot; <kbd>X</kbd> end chat</div>
+  </div>
   <div id="prompt" class="hidden"><kbd>E</kbd><span id="promptText"></span></div>
 </div>
 
@@ -114,6 +150,8 @@
     <div class="eyebrow">IIT Madras · Chennai</div>
     <h1>IITM Craft</h1>
     <p>Walk the campus from the Main Gate to the hostels. Find every place, meet the deer and build whatever you like.</p>
+    <div class="field-label">Your name</div>
+    <input id="nameInput" class="text" maxlength="16" placeholder="What should others call you?" autocomplete="off">
     <div class="field-label">Choose your student</div>
     <div class="pick">
       <button class="who on" data-kind="boy"><i class="av" style="--top:#2f6db3;--bot:#c9b287"></i>Boy</button>
@@ -123,7 +161,7 @@
       <kbd>WASD</kbd><span>Walk / drive</span><kbd>Mouse</kbd><span>Look around</span>
       <kbd>E</kbd><span>Drive / interact</span><kbd>M</kbd><span>Campus map</span>
     </div>
-    <button class="btn" id="bStart">Start exploring</button>
+    <button class="btn" id="bStart">Start exploring</button><span id="liveCount"></span>
     <div class="foot">Fan-made and not affiliated with IIT Madras. Layout based on the published campus map.</div>
   </div>
 </div>
@@ -651,7 +689,7 @@ function genPlaces(){
       topY = gate(cx,cz,!alongZ,3,6,BLUE);
       p.sign = alongZ ? [cx+5,cz-2] : [cx+2,cz-5]; p.front = alongZ ? [cx,cz-6] : [cx+6,cz];
     }
-    else if (p.k === 'gc') { topY = gc(cx,cz); p.sign=[cx+13,cz+13]; p.front=[cx,cz+13]; }
+    else if (p.k === 'gc') { topY = gc(cx,cz); p.sign=[cx+13,cz+13]; p.front=[cx,cz+10]; }
     else if (p.k === 'lake') { topY = G+6; p.sign=[cx-26,cz-14]; p.front=[cx-26,cz-16]; }
     else {
       [w,d] = fp;
@@ -678,7 +716,7 @@ function genPlaces(){
       cx = mx; cz = mz;
     }
     p.cx = cx; p.cz = cz; p.topY = topY;
-    p.r = p.k === 'lake' ? 30 : Math.max(11, (fp ? Math.max(fp[0],fp[1])/2 : 6) + 9);
+    p.r = p.k === 'lake' ? 30 : p.k === 'gc' ? 20 : Math.max(11, (fp ? Math.max(fp[0],fp[1])/2 : 6) + 9);
   }
 }
 
@@ -808,8 +846,10 @@ function buildChunk(cx,cz){
   });
   chunks.set(key, meshes);
 }
+let viewR = 185;
+function setView(r){ viewR = Math.max(80, Math.min(185, r)); scene.fog.near = viewR*.38; scene.fog.far = viewR - 8; cullChunks(); }
 function cullChunks(){
-  const px = camera.position.x, pz = camera.position.z, R = 185;
+  const px = camera.position.x, pz = camera.position.z, R = viewR;
   for (const ms of chunks.values()) for (const m of ms) { const [x,z] = m.userData.c; m.visible = Math.hypot(x-px, z-pz) < R; }
 }
 
@@ -1034,7 +1074,10 @@ const VSPEC = {
   cycle: { max:8.5, acc:5, turn:.62, lat:.18, lon:.75, seat:[0,.46,-.2], pose:'cycle', cam:.8, r:.34, prompt:'Ride the bicycle' },
 };
 const CYCLE_COLORS = [0x1f2a33, 0xb23a3a, 0x2f6db3, 0x2f7a4f, 0x6b6b6b, 0xd08a2a];
-const rimGeo = new THREE.TorusGeometry(.34,.045,6,18), spokeGeo = new THREE.BoxGeometry(.02,.62,.02);
+const cycleWheelGeo = mergeGeometries([
+  new THREE.TorusGeometry(.34,.045,6,18).rotateY(Math.PI/2),
+  ...[0,1,2].map(k => new THREE.BoxGeometry(.02,.62,.02).rotateX(k*Math.PI/3)),
+]);
 function makeCycle(color){
   const g = new THREE.Group(), F = color, D = 0x1c1c1c, M = 0xb8bcc0;
   g.add(model([
@@ -1047,8 +1090,7 @@ function makeCycle(color){
   for (const z of [.52,-.55]) {
     const steer = new THREE.Group(); steer.position.set(0,.36,z); g.add(steer);
     const spin = new THREE.Group(); steer.add(spin);
-    const rim = new THREE.Mesh(rimGeo, wheelMat); rim.rotation.y = Math.PI/2; spin.add(rim);
-    for (let k=0;k<3;k++) { const sp = new THREE.Mesh(spokeGeo, wheelMat); sp.rotation.x = k*Math.PI/3; spin.add(sp); }
+    spin.add(new THREE.Mesh(cycleWheelGeo, wheelMat));
     wheels.push({ steer, spin });
   }
   return { g, wheels };
@@ -1135,10 +1177,10 @@ function turnTo(a, dt, rate=8){ let dr = a.heading - a.g.rotation.y; dr = Math.a
 let scareUntil = 0;
 function updateWildlife(dt, sprinting){
   const px = player.pos.x, pz = player.pos.z, honk = performance.now() < scareUntil;
-  const scareR = driving ? 12 : sprinting ? 11 : 4.5;
+  const scareR = driving ? 12 : sprinting ? 11 : 2.2;
   for (const d of deer) {
     const dx = d.x-px, dz = d.z-pz, pd = Math.hypot(dx,dz);
-    d.g.visible = pd < 100;
+    d.g.visible = pd < 85;
     if (pd > 110) continue;
     d.t += dt; d.timer -= dt;
     if ((!d.greeted || honk || driving) && (pd < scareR || (honk && pd < 18)) && !player.fly) { d.state = 'flee'; d.heading = Math.atan2(dx,dz) + (Math.random()-.5)*.6; d.timer = .6; }
@@ -1157,7 +1199,7 @@ function updateWildlife(dt, sprinting){
   }
   for (const m of monkeys) {
     const dx = m.x-px, dz = m.z-pz, pd = Math.hypot(dx,dz);
-    m.g.visible = pd < 90;
+    m.g.visible = pd < 70;
     if (pd > 100) continue;
     m.t += dt; m.timer -= dt;
     if (!player.fly && ((sprinting && pd < 8) || (driving && pd < 10) || (honk && pd < 16))) { m.state = 'run'; m.heading = Math.atan2(dx,dz) + (Math.random()-.5); m.timer = .8; }
@@ -1257,10 +1299,11 @@ function updatePlayer(dt){
       p.y += 1.05; const free = !collides({ x:p.x+v.x*.05, y:p.y, z:p.z+v.z*.05 }); p.y -= 1.05;
       if (free) v.y = 8.3;
     }
-    player.onGround = false;
     p.y += v.y*h;
-    if (collides(p)) { p.y -= v.y*h; if (v.y < 0) player.onGround = true; v.y = 0; }
+    if (collides(p)) { p.y -= v.y*h; v.y = 0; }
   }
+  // Standing = something solid right under the feet (checked after all substeps).
+  player.onGround = !player.fly && v.y <= 0 && collides({ x:p.x, y:p.y-.06, z:p.z });
   if (p.y < -10) teleport(SPAWN[0], SPAWN[2], Math.PI);
   const hs = Math.hypot(v.x,v.z);
   if (student) {
@@ -1284,13 +1327,14 @@ function teleport(x,z,face){
 function enterBuggy(b){
   const V = VSPEC[b.kind];
   driving = b; player.fly = false; player.vel.set(0,0,0);
+  nsend({ t:'enter', vid:b.vid });
   b.g.add(student.g); student.g.position.set(...V.seat); student.g.rotation.set(0,0,0);
   animateStudent(student, 0, 0, V.pose);
   lastMouse = 0;
   $('mode').textContent = b.kind === 'cycle' ? 'Cycling' : 'Driving';
   if (b.kind === 'buggy') sfx.start(); else sfx.bell();
 }
-function exitBuggy(force){
+function exitBuggy(force, rejected){
   const b = driving; if (!b) return;
   const lx = Math.cos(b.heading), lz = -Math.sin(b.heading), off = b.kind === 'cycle' ? 1.1 : 1.9;
   const tries = [[-lx*off,-lz*off],[lx*off,lz*off],[-Math.sin(b.heading)*2.8,-Math.cos(b.heading)*2.8],[Math.sin(b.heading)*2.8,Math.cos(b.heading)*2.8]];
@@ -1299,12 +1343,17 @@ function exitBuggy(force){
   if (!spot && !force) return;
   spot ||= { x:b.x, y:b.y+2.2, z:b.z };
   b.speed = 0; driving = null;
+  if (!rejected) nsend({ t:'exit', x:b.x, z:b.z, h:b.heading });
   scene.add(student.g);
   player.pos.set(spot.x, spot.y, spot.z); player.vel.set(0,0,0);
   student.facing = b.heading; student.g.position.copy(player.pos); student.g.rotation.y = student.facing;
   $('mode').textContent = 'Walking';
 }
 function updateDriving(dt){
+  const n = Math.ceil(dt/.03);
+  for (let i=0;i<n && driving;i++) driveStep(dt/n);
+}
+function driveStep(dt){
   const c = driving, V = VSPEC[c.kind];
   const thr = (keys.has('KeyW')?1:0) - (keys.has('KeyS')?1:0), st = (keys.has('KeyA')?1:0) - (keys.has('KeyD')?1:0);
   c.steer += (st*.6 - c.steer)*Math.min(1,dt*6);
@@ -1361,12 +1410,14 @@ function findFocus(){
   if (driving) return { type:'exit', text:'Get out' };
   const px = player.pos.x, pz = player.pos.z;
   let best = null, bd = 1e9;
-  const consider = (type, o, r, text) => { const d = Math.hypot(o.x-px, o.z-pz); if (d < r && d < bd && Math.abs(o.y-player.pos.y) < 2.5) { bd = d; best = { type, o, text }; } };
+  const consider = (type, o, r, text, bias=0) => {
+    const d = Math.hypot(o.x-px, o.z-pz);
+    if (d < r && d+bias < bd && Math.abs(o.y-player.pos.y) < 2.5) { bd = d+bias; best = { type, o, text }; }
+  };
   for (const b of buggies) if (!b.remote) consider('drive', b, b.kind === 'cycle' ? 2 : 3.2, VSPEC[b.kind].prompt);
-  if (!best) {
-    for (const d of deer) consider('deer', d, 5.5, d.greeted ? 'Pat the deer' : d.kind === 'buck' ? 'Say hi to the blackbuck' : 'Say hi to the spotted deer');
-    for (const m of monkeys) consider('monkey', m, 3.6, 'Wave at the monkey');
-  }
+  if (!net.chatWith) for (const p of net.peers.values()) if (!p.vehicle) consider('chat', p, 4, `Chat with ${p.name}`, -1.5);
+  for (const d of deer) consider('deer', d, 5.5, d.greeted ? 'Pat the deer' : d.kind === 'buck' ? 'Say hi to the blackbuck' : 'Say hi to the spotted deer', .5);
+  for (const m of monkeys) consider('monkey', m, 3.6, 'Wave at the monkey', .5);
   return best;
 }
 const MONKEY_LINES = ['It stares at your backpack.','It looks unimpressed.','It chatters and scratches its ear.','It is definitely after your snacks.','It waves back. Probably.'];
@@ -1375,6 +1426,7 @@ function interact(){
   if (focus.type === 'drive') return enterBuggy(focus.o);
   if (focus.type === 'exit') return exitBuggy(false);
   if (focus.type === 'deer') return greet(focus.o);
+  if (focus.type === 'chat') return requestChat(focus.o);
   if (focus.type === 'monkey') {
     const m = focus.o; m.hop = .6; m.state = 'sit'; m.timer = 3;
     toast('Wildlife', 'Bonnet macaque', MONKEY_LINES[(Math.random()*MONKEY_LINES.length)|0]);
@@ -1404,7 +1456,9 @@ function updateCounts(){
     setTimeout(() => toast('Campus complete', 'You know IIT Madras', 'Every place found and fifteen deer befriended.'), 900);
   }
 }
+const toastLog = [];
 function toast(eyebrow, title, body){
+  toastLog.push(title); if (toastLog.length > 30) toastLog.shift();
   const t = document.createElement('div'); t.className = 'toast';
   t.innerHTML = '<div class="eyebrow"></div><h4></h4><p></p>';
   t.children[0].textContent = eyebrow; t.children[1].textContent = title; t.children[2].textContent = body || '';
@@ -1418,7 +1472,7 @@ function checkPlaces(){
   let best = null, bd = 1e9, nearZone = null, nzd = 1e9;
   for (const p of placeList) {
     const d = Math.hypot(px-p.cx-.5, pz-p.cz-.5);
-    if (d < p.r && d < bd) { best = p; bd = d; }
+    if (d < p.r && d/p.r < bd) { best = p; bd = d/p.r; }
     if (d < nzd) { nzd = d; nearZone = p; }
     if (!p.found && d < p.r) { p.found = true; toast('New place', p.n, p.f || p.z); updateCounts(); }
   }
@@ -1437,7 +1491,7 @@ function updateLabels(){
     else { s.visible = d < 55; s.material.opacity = Math.max(0, Math.min(1, (55-d)/15)); }
   }
   for (const g of signs) g.visible = Math.hypot(px-g.position.x, pz-g.position.z) < 90;
-  for (const b of buggies) b.g.visible = Math.hypot(px-b.x, pz-b.z) < 140;
+  for (const b of buggies) b.g.visible = Math.hypot(px-b.x, pz-b.z) < (b.kind === 'cycle' ? 65 : 140);
 }
 let promptText = '';
 function updatePrompt(){
@@ -1482,6 +1536,11 @@ function drawMap(){
     mctx.fillStyle = p.found ? '#e8c170' : 'rgba(243,234,216,.35)'; mctx.fill();
     mctx.lineWidth = 2; mctx.strokeStyle = '#10353a'; mctx.stroke();
   }
+  mctx.font = `600 13px ${SANS}`;
+  for (const p of net.peers.values()) {
+    mctx.beginPath(); mctx.arc(p.x*MS, p.z*MS, 5, 0, 7); mctx.fillStyle = '#6fd08c'; mctx.fill(); mctx.lineWidth = 2; mctx.strokeStyle = '#10353a'; mctx.stroke();
+    mctx.lineWidth = 4; mctx.strokeText(p.name, p.x*MS, p.z*MS - 13); mctx.fillStyle = '#f3ead8'; mctx.fillText(p.name, p.x*MS, p.z*MS - 13);
+  }
   const heading = driving ? driving.heading : student ? student.facing : yaw+Math.PI;
   mctx.save(); mctx.translate(player.pos.x*MS, player.pos.z*MS); mctx.rotate(-heading);
   mctx.beginPath(); mctx.moveTo(0,14); mctx.lineTo(9,-9); mctx.lineTo(0,-4); mctx.lineTo(-9,-9); mctx.closePath();
@@ -1515,6 +1574,205 @@ mapcv.addEventListener('click', e => {
 });
 
 // ============================================================
+//  Multiplayer
+// ============================================================
+const net = { ws:null, id:0, online:0, status:'offline', peers:new Map(), sendT:0, name:'', kind:'boy', retry:0,
+  chatWith:0, chatName:'', pendingReq:null, reqTimer:0, lastReq:0 };
+function netUrl(){
+  const q = new URLSearchParams(location.search).get('server');
+  if (q) return q;
+  if (location.protocol.startsWith('http')) return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+  return 'ws://localhost:8787/ws';
+}
+function setOnline(){
+  $('cOnline').textContent = net.status === 'online' ? `${net.online} online` : net.status === 'connecting' ? 'Connecting' : 'Offline';
+  $('onlinePill').classList.toggle('off', net.status !== 'online');
+}
+function connect(){
+  if (net.ws) return;
+  net.status = 'connecting'; setOnline();
+  let ws;
+  try { ws = new WebSocket(netUrl()); } catch { net.status = 'offline'; setOnline(); return; }
+  net.ws = ws;
+  ws.onopen = () => ws.send(JSON.stringify({ t:'join', name:net.name, kind:net.kind }));
+  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; } onNet(m); };
+  ws.onclose = () => {
+    net.ws = null; net.status = 'offline'; setOnline();
+    for (const id of [...net.peers.keys()]) removePeer(id);
+    for (const v of buggies) v.remote = 0;
+    if (net.chatWith) closeChat(false, 'Connection lost.');
+    hideChatRequest();
+    setTimeout(connect, Math.min(20000, 2500 * ++net.retry));
+  };
+}
+const nsend = m => { if (net.ws && net.ws.readyState === 1) net.ws.send(JSON.stringify(m)); };
+function onNet(m){
+  switch (m.t) {
+    case 'welcome':
+      net.id = m.id; net.online = m.online; net.status = 'online'; net.retry = 0; setOnline();
+      m.players.forEach(upsertPeer);
+      m.vehicles.forEach(([vid,x,z,h,driver]) => applyVehicle(vid,x,z,h,driver));
+      if (driving) nsend({ t:'enter', vid:driving.vid });
+      break;
+    case 'full': toast('Server', 'Campus is full', 'Too many students online. Try again in a few minutes.'); break;
+    case 'add': upsertPeer(m.p); break;
+    case 'del': removePeer(m.id); break;
+    case 'snap': net.online = m.n; setOnline(); m.ps.forEach(snapPeer); break;
+    case 'veh': applyVehicle(m.vid, m.x, m.z, m.h, m.driver); break;
+    case 'enterRes':
+      if (!m.ok && driving && driving.vid === m.vid) { exitBuggy(true, true); toast('Vehicles', 'Someone got there first', 'Another student is already using it.'); }
+      break;
+    case 'chatReq': showChatRequest(m.from, m.name); break;
+    case 'chatDeclined': toast('Chat', `${m.name} can't chat right now`, 'Your request was declined.'); break;
+    case 'chatOpen': hideChatRequest(); openChat(m.with, m.name); break;
+    case 'chat': addChatLine(m.name, m.text, false); break;
+    case 'chatEnd': closeChat(false, `${net.chatName} left the chat.`); break;
+  }
+}
+
+// ---------- remote students ----------
+function nameTag(name){
+  const t = canvasTex(512,96,g => {
+    g.font = `600 44px ${SANS}`;
+    const w = Math.min(500, g.measureText(name).width + 48), x0 = (512-w)/2;
+    g.fillStyle = 'rgba(15,50,54,.88)'; g.beginPath(); g.roundRect(x0,10,w,76,38); g.fill();
+    g.fillStyle = '#f3ead8'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(name, 256, 50);
+  });
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, transparent:true, depthWrite:false }));
+  s.scale.set(2.2, .41, 1); s.position.set(0, 2.05, 0); s.renderOrder = 6;
+  return s;
+}
+function upsertPeer(d){
+  if (d.id === net.id) return;
+  if (!net.peers.has(d.id)) {
+    const s = makeStudent(d.kind), tag = nameTag(d.name);
+    s.g.add(tag); scene.add(s.g);
+    net.peers.set(d.id, { id:d.id, name:d.name, kind:d.kind, s, tag, x:d.x, y:d.y, z:d.z, f:d.f, tx:d.x, ty:d.y, tz:d.z, tf:d.f, vh:d.vh||0, a:d.a||'walk', v:-1, vehicle:null, speed:0 });
+  }
+  snapPeer([d.id, d.x, d.y, d.z, d.f, d.a, d.v, d.vh]);
+}
+function snapPeer([id,x,y,z,f,a,v,vh]){
+  const p = net.peers.get(id); if (!p) return;
+  if (Math.hypot(x-p.x, z-p.z) > 30) { p.x = x; p.y = y; p.z = z; }
+  Object.assign(p, { tx:x, ty:y, tz:z, tf:f, a, vh });
+  if (v !== p.v) {
+    if (p.vehicle) unseatPeer(p);
+    p.v = v;
+    const veh = v >= 0 ? buggies[v] : null;
+    if (veh && veh !== driving) { veh.remote = id; seatPeer(p, veh); }
+  }
+}
+function seatPeer(p, v){
+  v.g.add(p.s.g); p.s.g.position.set(...VSPEC[v.kind].seat); p.s.g.rotation.set(0,0,0);
+  p.vehicle = v; animateStudent(p.s, 0, 0, VSPEC[v.kind].pose);
+}
+function unseatPeer(p){ scene.add(p.s.g); p.vehicle = null; }
+function removePeer(id){
+  const p = net.peers.get(id); if (!p) return;
+  if (p.vehicle) { p.vehicle.remote = 0; unseatPeer(p); }
+  scene.remove(p.s.g); p.tag.material.map.dispose(); p.tag.material.dispose();
+  net.peers.delete(id);
+  if (net.pendingReq && net.pendingReq.from === id) hideChatRequest();
+}
+function applyVehicle(vid,x,z,h,driver){
+  const v = buggies[vid]; if (!v || v === driving) return;
+  if (driver && driver !== net.id) { v.remote = driver; const p = net.peers.get(driver); if (p && p.vehicle !== v) { if (p.vehicle) unseatPeer(p); seatPeer(p, v); } return; }
+  if (!driver) {
+    for (const p of net.peers.values()) if (p.vehicle === v) unseatPeer(p);
+    v.remote = 0;
+    if (typeof x === 'number') {
+      const gy = carGround(x, z, G+4);
+      Object.assign(v, { x, z, heading:h, speed:0, y: gy > 0 ? gy : v.y });
+      v.g.position.set(v.x, v.y, v.z); v.g.rotation.set(0, h, 0);
+    }
+  }
+}
+const angDiff = (a,b) => Math.atan2(Math.sin(a-b), Math.cos(a-b));
+function updatePeers(dt){
+  const k = 1 - Math.exp(-dt*10);
+  for (const p of net.peers.values()) {
+    const ox = p.x, oz = p.z;
+    p.x += (p.tx-p.x)*k; p.y += (p.ty-p.y)*k; p.z += (p.tz-p.z)*k;
+    p.speed += (Math.hypot(p.x-ox, p.z-oz)/Math.max(dt,1e-3) - p.speed)*Math.min(1,dt*8);
+    const d = Math.hypot(p.x-player.pos.x, p.z-player.pos.z);
+    p.tag.visible = d < 70;
+    if (p.vehicle) {
+      const v = p.vehicle, V = VSPEC[v.kind];
+      v.x = p.x; v.y = p.y; v.z = p.z; v.heading += angDiff(p.vh, v.heading)*k;
+      v.g.position.set(v.x, v.y, v.z); v.g.rotation.y = v.heading;
+      v.wheels.forEach(w => w.spin.rotation.x += p.speed*dt/V.r);
+      if (v.kind === 'cycle') animateStudent(p.s, dt, p.speed, 'cycle');
+    } else {
+      p.f += angDiff(p.tf, p.f)*k;
+      p.s.g.position.set(p.x, p.y, p.z); p.s.g.rotation.y = p.f; p.s.g.visible = d < 200;
+      animateStudent(p.s, dt, p.speed, p.a === 'fly' ? 'fly' : p.a === 'air' ? 'air' : 'walk');
+    }
+  }
+}
+function netSend(dt){
+  if (net.status !== 'online' || !student || (net.sendT -= dt) > 0) return;
+  net.sendT = .1;
+  const a = driving ? VSPEC[driving.kind].pose : player.fly ? 'fly' : player.onGround ? 'walk' : 'air';
+  const r = v => Math.round(v*100)/100;
+  nsend({ t:'s', x:r(player.pos.x), y:r(player.pos.y), z:r(player.pos.z), f:r(student.facing), a, vh: driving ? r(driving.heading) : 0 });
+}
+
+// ---------- chat ----------
+function requestChat(p){
+  if (net.chatWith) return;
+  if (performance.now() - net.lastReq < 3000) return toast('Chat', 'Hang on', 'You just sent a request.');
+  net.lastReq = performance.now();
+  nsend({ t:'chatReq', to:p.id });
+  toast('Chat', 'Request sent', `Waiting for ${p.name} to accept.`);
+}
+function showChatRequest(from, name){
+  if (net.chatWith) return nsend({ t:'chatResp', to:from, ok:false });
+  net.pendingReq = { from, name };
+  $('reqName').textContent = name;
+  show('chatreq', true); sfx.chime();
+  clearTimeout(net.reqTimer);
+  net.reqTimer = setTimeout(() => respondChat(false), 20000);
+}
+function hideChatRequest(){ net.pendingReq = null; clearTimeout(net.reqTimer); show('chatreq', false); }
+function respondChat(ok){
+  const r = net.pendingReq; if (!r) return;
+  nsend({ t:'chatResp', to:r.from, ok });
+  hideChatRequest();
+}
+function openChat(id, name){
+  net.chatWith = id; net.chatName = name;
+  $('chatName').textContent = name; $('chatLog').innerHTML = '';
+  addChatLine('', `You're now chatting with ${name}. Be kind.`, false, true);
+  show('chat', true);
+}
+function closeChat(notify, reason){
+  if (!net.chatWith) return;
+  if (notify) nsend({ t:'chatEnd' });
+  net.chatWith = 0; show('chat', false); $('chatInput').blur();
+  if (reason) toast('Chat', 'Chat ended', reason);
+}
+function addChatLine(name, text, mine, system){
+  const row = document.createElement('div');
+  row.className = 'line' + (mine ? ' mine' : '') + (system ? ' sys' : '');
+  if (name) { const b = document.createElement('b'); b.textContent = name; row.appendChild(b); }
+  row.appendChild(document.createTextNode(text));
+  const log = $('chatLog'); log.appendChild(row);
+  while (log.children.length > 60) log.firstChild.remove();
+  log.scrollTop = log.scrollHeight;
+}
+$('chatInput').addEventListener('keydown', e => {
+  e.stopPropagation();
+  if (e.key === 'Enter') {
+    const text = e.target.value.trim().slice(0, 240);
+    if (text && net.chatWith) { nsend({ t:'chat', text }); addChatLine('You', text, true); }
+    e.target.value = ''; e.target.blur();
+  } else if (e.key === 'Escape') e.target.blur();
+});
+$('chatClose').onclick = () => closeChat(true);
+$('reqYes').onclick = () => respondChat(true);
+$('reqNo').onclick = () => respondChat(false);
+
+// ============================================================
 //  State and input
 // ============================================================
 let state = 'loading';  // loading | title | play | paused | map
@@ -1527,15 +1785,25 @@ function openMap(){
   if (document.pointerLockElement) document.exitPointerLock();
 }
 function closeMap(relock){ show('mapview', false); state = 'paused'; if (relock) lock(); else show('pause', true); }
-function begin(kind){
+function begin(kind, name){
   if (!student) { student = makeStudent(kind); scene.add(student.g); }
   teleport(SPAWN[0], SPAWN[2], Math.PI);
+  net.kind = kind; net.name = name || 'Student';
+  connect();
 }
+function playerName(){
+  let n = $('nameInput').value.replace(/[<>]/g,'').trim().slice(0,16);
+  if (!n) n = 'Student ' + (100 + Math.floor(Math.random()*900));
+  try { localStorage.setItem('iitmcraft.name', n); } catch {}
+  return n;
+}
+try { $('nameInput').value = localStorage.getItem('iitmcraft.name') || ''; } catch {}
+if (location.protocol.startsWith('http')) fetch('/api/online').then(r => r.json()).then(d => { $('liveCount').textContent = d.online ? `${d.online} student${d.online > 1 ? 's' : ''} on campus now` : 'Be the first on campus'; }).catch(() => {});
 document.querySelectorAll('.who').forEach(b => b.onclick = () => {
   chosen = b.dataset.kind;
   document.querySelectorAll('.who').forEach(o => o.classList.toggle('on', o === b));
 });
-$('bStart').onclick = () => { begin(chosen); lock(); };
+$('bStart').onclick = () => { if (state !== 'title') return; begin(chosen, playerName()); lock(); };
 $('bResume').onclick = lock;
 $('bMapClose').onclick = () => closeMap(true);
 $('bMap').onclick = openMap;
@@ -1546,6 +1814,7 @@ document.addEventListener('pointerlockchange', () => {
   if (locked) {
     if (state === 'title') setTimeout(() => $('hint').style.opacity = 0, 10000);
     state = 'play'; show('start', false); show('pause', false); show('mapview', false); show('hud', true); $('tools').style.pointerEvents = 'none';
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
   } else {
     keys.clear(); $('tools').style.pointerEvents = 'auto';
     if (state === 'play') { state = 'paused'; show('pause', true); }
@@ -1561,6 +1830,10 @@ document.addEventListener('mousedown', e => { if (state === 'play' && e.button =
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('wheel', e => { if (state === 'play') camDist = Math.max(2.5, Math.min(10, camDist + Math.sign(e.deltaY)*.7)); }, { passive:true });
 document.addEventListener('keydown', e => {
+  if (document.activeElement && ['nameInput','chatInput'].includes(document.activeElement.id)) return;
+  if (state === 'play' && net.pendingReq && (e.code === 'KeyY' || e.code === 'KeyN')) { respondChat(e.code === 'KeyY'); return; }
+  if (state === 'play' && net.chatWith && e.code === 'Enter') { e.preventDefault(); keys.clear(); $('chatInput').focus(); return; }
+  if (state === 'play' && net.chatWith && e.code === 'KeyX') { closeChat(true); return; }
   if (e.code === 'KeyM' && (state === 'play' || state === 'paused')) { openMap(); return; }
   if (state === 'map') { if (e.code === 'KeyM') closeMap(true); else if (e.code === 'Escape') closeMap(false); return; }
   if (state !== 'play') return;
@@ -1608,7 +1881,7 @@ async function boot(){
   await step(42, 'Planting the forest');       genTrees();
   placeList = PLACES.filter(p => !p.skip);
   placeList.forEach(p => { p.found = false; signboard(p); floatLabel(p); });
-  await step(46, 'Parking the e-buggies');     spawnBuggies(); spawnCycles(); spawnWildlife();
+  await step(46, 'Parking the e-buggies');     spawnBuggies(); spawnCycles(); buggies.forEach((b,i) => b.vid = i); spawnWildlife();
   for (let z=0;z<WZ;z++) for (let x=0;x<WX;x++) mapPixel(x,z);
   const all = [];
   for (let cz=0;cz<WZ/CS;cz++) for (let cx=0;cx<WX/CS;cx++) all.push([cx,cz]);
@@ -1622,21 +1895,39 @@ async function boot(){
 }
 
 let last = performance.now(), cullT = 0, orbit = 0;
+// Dynamic resolution: drop render scale on slow GPUs, restore it when there is headroom.
+const MAX_PR = Math.min(devicePixelRatio, 1.5);
+let pr = MAX_PR, fpsFrames = 0, fpsT = 0;
+function adaptQuality(dt){
+  fpsFrames++; fpsT += dt;
+  if (fpsT < 2) return;
+  const fps = fpsFrames / fpsT; fpsFrames = 0; fpsT = 0;
+  if (fps < 28) {
+    if (pr > .6) { pr = Math.max(.6, pr - .2); renderer.setPixelRatio(pr); }
+    else if (viewR > 80) setView(viewR - 30);
+  } else if (fps > 50) {
+    if (viewR < 185) setView(viewR + 20);
+    else if (pr < MAX_PR) { pr = Math.min(MAX_PR, pr + .1); renderer.setPixelRatio(pr); }
+  }
+}
 const GCP = P([2534,4261]);
 renderer.setAnimationLoop(now => {
-  const dt = Math.min(.05, (now-last)/1000); last = now;
+  const dt = Math.min(.25, (now-last)/1000); last = now;
   if (state === 'loading') return;
+  adaptQuality(dt);
   if (state === 'play') {
     const sprinting = driving ? (updateDriving(dt), false) : updatePlayer(dt);
     updateWildlife(dt, sprinting);
     checkPlaces();
     updateCamera(dt);
+    netSend(dt);
   } else if (state === 'title') {
     orbit += dt*.04;
     camera.position.set(GCP[0] + Math.cos(orbit)*70, 46, GCP[1] + Math.sin(orbit)*70);
     camera.lookAt(GCP[0], G+4, GCP[1]);
     updateWildlife(dt, false);
   }
+  updatePeers(dt);
   if ((cullT -= dt) <= 0) { cullT = .4; cullChunks(); }
   updateSky(dt);
   updateLabels();
@@ -1645,9 +1936,10 @@ renderer.setAnimationLoop(now => {
 });
 boot();
 if (new URLSearchParams(location.search).has('debug')) window.iitm = {
-  teleport, places: () => placeList, player, buggies, deer, monkeys, openMap, begin, enterBuggy, keys,
+  teleport, places: () => placeList, player, buggies, deer, monkeys, openMap, begin, enterBuggy, exitBuggy, keys, net, requestChat, respondChat, closeChat,
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
+  stateNow: () => state, toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT,
 };
 </script>
 </body>

@@ -1,24 +1,20 @@
 # IITM Craft: Plan
 
-## v2: real campus (done)
-- [x] Layout traced from the official IIT Madras building map (2021), about 5 m per block
-- [x] Bonn Avenue, Delhi Avenue, Alumni Avenue, Hostel Avenue, Play Field Avenue, the hostel loops and Sardar Patel Road
-- [x] 85 places, each with a signboard: gates, departments, hostels, messes, grounds, temples, schools, banks, the Research Park
-- [x] Campus Lake, the long lake, ponds, Watsa Stadium, OAT, SAC, swimming pool, Chemplast ground
-- [x] Staff quarters along the residential avenues, Guindy forest everywhere else
-- [x] 36 deer across the green belts
-- [x] New UI: teal panels, Fraunces + Inter fonts, location card, campus map with fast travel
-- [x] Ambient occlusion lighting, open lawns around buildings, distance culling
+## Done
+- **v1–v2:** real campus layout from the 2021 building map, 85 places, lakes, grounds, staff quarters, campus map with fast travel
+- **v3:** third-person student (boy/girl), e-buggies and bicycles, 60 deer and 40 monkeys, block editing removed
+- **v4:** multiplayer server; names, live player count, synced movement and vehicles, proximity chat with accept/decline; auto quality scaling; 81-check end-to-end test suite
 
-## v3: next
-- [ ] Save builds and progress (localStorage)
+## Next
+- [ ] Deploy the server publicly so anyone can join from a link
+- [ ] Emotes (wave, dance) that other players can see
+- [ ] Passengers: let friends ride along in an e-buggy
+- [ ] Save progress (places found, deer greeted) per player
 - [ ] Sound: footsteps, birds by day, crickets at night
-- [ ] Monkeys that steal from your hotbar
-- [ ] Campus buses between Main Gate, GC, the academic zone and the hostel zone
-- [ ] Interiors: library reading rooms, mess tables, hostel rooms, stairs
-- [ ] More accurate building shapes for GC, the Admin Block and the Library
+- [ ] Campus buses on fixed routes
+- [ ] Moderation: report / block a player, word filter for chat
 
 ## Later
-- [ ] Multiplayer campus
-- [ ] Saarang / Shaastra event mode at the OAT
+- [ ] Group chat for students standing together
+- [ ] Event mode at the OAT (Saarang / Shaastra)
 - [ ] Touch controls for mobile

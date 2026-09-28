@@ -1,0 +1,21 @@
+{
+  "name": "iitm-craft",
+  "version": "0.4.0",
+  "description": "Multiplayer voxel game of the IIT Madras campus",
+  "private": true,
+  "type": "module",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node tests/e2e.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
