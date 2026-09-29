@@ -96,7 +96,7 @@ try {
   await hold(A, 'KeyW', 1500);
   let p1 = await pos(A);
   check('W walks forward', Math.hypot(p1.x - p0.x, p1.z - p0.z) > 2, `${Math.hypot(p1.x - p0.x, p1.z - p0.z).toFixed(1)} blocks`);
-  check('New students start at Gajendra Circle', await A.evaluate(() => iitm.places().find(p => p.n === 'Gajendra Circle').found));
+  check('New students start at the Main Gate', await A.evaluate(() => iitm.places().find(p => p.n === 'Main Gate').found));
 
   // jump
   // jump on open road, standing still
@@ -132,6 +132,13 @@ try {
   const lib = await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Main Gate'); const r = document.getElementById('mapcv').getBoundingClientRect(); return { x: r.left + (q.cx + .5) / 480 * r.width, y: r.top + (q.cz + .5) / 528 * r.height }; });
   await A.mouse.move(lib.x, lib.y); await sleep(200);
   check('Map tooltip names the hovered place', (await A.textContent('#maptip')).includes('Main Gate'));
+  // any place can be jumped to, even one not discovered yet
+  const far = await A.evaluate(() => { const q = iitm.places().find(p => !p.found && p.n === 'Himalaya Mess'); const r = document.getElementById('mapcv').getBoundingClientRect(); return { x: r.left + (q.cx + .5) / 480 * r.width, y: r.top + (q.cz + .5) / 528 * r.height }; });
+  await A.mouse.click(far.x, far.y); await sleep(500);
+  const hm = await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Himalaya Mess'); return Math.hypot(iitm.player.pos.x - q.front[0], iitm.player.pos.z - q.front[1]); });
+  check('Map jumps to places not discovered yet', hm < 4, `${hm.toFixed(1)} blocks away`);
+  await A.evaluate(() => iitm.openMap()); await sleep(300);
+  await A.mouse.move(lib.x, lib.y); await sleep(200);
   await A.mouse.click(lib.x, lib.y); await sleep(500);
   if (await A.evaluate(() => iitm.stateNow()) !== 'play') await A.evaluate(() => iitm.setState('play'));
   const mg = await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Main Gate'); return Math.hypot(iitm.player.pos.x - q.front[0], iitm.player.pos.z - q.front[1]); });
@@ -205,7 +212,7 @@ try {
   });
   check('Prompt offers to greet a nearby deer', /^Say hi to the/.test(dr || ''), dr);
   await A.keyboard.press('KeyE'); await sleep(200);
-  check('E greets the deer and counts it', await A.evaluate(() => iitm.greetedNow()) === 1 && (await A.textContent('#cDeer')) === '1/15', await A.textContent('#cDeer'));
+  check('E greets the deer', await A.evaluate(() => iitm.greetedNow()) === 1 && await A.evaluate(() => iitm.toasts().some(t => /deer|blackbuck/i.test(t))));
 
   // monkey
   const mk = await A.evaluate(() => {
@@ -256,7 +263,7 @@ try {
   //  Multiplayer
   // ============================================================
   const B = await openGame('B');
-  check('Second player sees who is online before joining', /1 student/.test(await B.textContent('#liveCount')), await B.textContent('#liveCount'));
+  check('Second player sees who is online before joining', /1 on campus/.test(await B.textContent('#liveCount')), await B.textContent('#liveCount'));
   await startAs(B, 'Ravi', 'boy');
   check('Second player connects', await until(() => B.evaluate(() => iitm.net.status === 'online')));
   check('Both see 2 online', await until(async () => /2 online/.test(await A.textContent('#cOnline')) && /2 online/.test(await B.textContent('#cOnline'))));
@@ -321,6 +328,31 @@ try {
   await A.evaluate(() => iitm.exitBuggy(true));
   check('Vehicle frees up after the rider gets off', await until(() => B.evaluate(v => !iitm.buggies[v].remote, vid), 3000));
 
+  // e-buggy passengers: sit in a parked buggy, then ride along while someone else drives
+  const bv = await A.evaluate(() => {
+    const b = iitm.buggies.find(v => v.kind === 'buggy' && !v.remote && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 7));
+    iitm.teleport(b.x + Math.cos(b.heading) * 2.2, b.z - Math.sin(b.heading) * 2.2); return b.vid;
+  });
+  await B.evaluate(v => { const b = iitm.buggies[v]; iitm.teleport(b.x - Math.cos(b.heading) * 2.2, b.z + Math.sin(b.heading) * 2.2); }, bv);
+  await sleep(400);
+  const altShown = await B.evaluate(() => { iitm.updatePrompt(); return !document.getElementById('promptAlt').hidden && document.getElementById('promptAltText').textContent; });
+  check('A free e-buggy offers Drive or Sit in', altShown === 'Sit in', String(altShown));
+  await B.keyboard.press('KeyR');
+  check('R sits in the e-buggy as a passenger', await until(() => B.evaluate(() => iitm.ridingNow() && iitm.ridingNow().seat > 0), 2000));
+  check('Other players see the passenger seated', await until(() => A.evaluate(v => [...iitm.net.peers.values()].some(p => p.vehicle === iitm.buggies[v] && p.seat > 0), bv), 3000));
+  check('The driver seat stays free for someone else', await A.evaluate(v => { iitm.updatePrompt(); return iitm.focusNow() === 'Drive the e-buggy'; }, bv));
+  await A.keyboard.press('KeyE');
+  check('Another student can drive with a passenger aboard', await until(() => A.evaluate(() => iitm.drivingNow() && iitm.drivingNow().kind === 'buggy'), 2000));
+  const rb0 = await pos(B);
+  await hold(A, 'KeyW', 1800);
+  if (Math.hypot((await pos(B)).x - rb0.x, (await pos(B)).z - rb0.z) < 1) await hold(A, 'KeyS', 1800);
+  check('The passenger rides along with the driver', await until(async () => { const p = await pos(B); return Math.hypot(p.x - rb0.x, p.z - rb0.z) > 1.5; }, 4000));
+  await sleep(1200);
+  await B.keyboard.press('KeyE');
+  check('The passenger can get out', await until(() => B.evaluate(() => !iitm.ridingNow()), 2000));
+  check('The seat frees up for others', await until(() => A.evaluate(v => iitm.buggies[v].riders.every(r => !r), bv), 3000));
+  await A.evaluate(() => iitm.exitBuggy(true));
+
   // leave
   await B.close();
   check('Leaving removes the player for others', await until(() => A.evaluate(() => iitm.net.peers.size === 0), 5000));
@@ -361,7 +393,8 @@ try {
   await touchEv('touchEnd', []);
   check('Dragging on the world turns the camera', Math.abs((await M.evaluate(() => iitm.cam().yaw)) - yaw0) > .3);
   await M.evaluate(() => { const b = iitm.buggies.find(v => v.kind === 'buggy' && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 6)); iitm.teleport(b.x + Math.cos(b.heading) * 2.2, b.z - Math.sin(b.heading) * 2.2); });
-  check('Use button offers to ride a nearby buggy', await until(async () => (await M.textContent('#tUse')) === 'Ride', 2000), await M.textContent('#tUse'));
+  check('Use button offers to drive a nearby buggy', await until(async () => (await M.textContent('#tUse')) === 'Drive', 2000), await M.textContent('#tUse'));
+  check('A Sit in button appears next to a free buggy', await M.isVisible('#tSit'));
   await M.tap('#tUse');
   check('Tapping Use gets into the buggy', await until(() => M.evaluate(() => !!iitm.drivingNow()), 2000));
   check('Buttons switch to driving actions', await until(async () => (await M.textContent('#tJump')) === 'Brake' && (await M.textContent('#tUse')) === 'Get out', 2000));
@@ -407,6 +440,22 @@ try {
   check('Out-of-range positions are rejected', w1row && Math.abs(w1row[1] - 10) < .01, w1row ? `x=${w1row[1]}` : 'no snapshot');
   const closed = new Promise(res => w1.on('close', res));
   for (let i = 0; i < 200; i++) w1.send(JSON.stringify({ t: 's', x: 10, y: 13, z: 10 }));
+  // seat limits: one driver and three passengers per e-buggy
+  const riders = await Promise.all([0,1,2,3,4].map(() => raw()));
+  riders.forEach((w, i) => w.send(JSON.stringify({ t: 'join', name: 'Seat ' + i, kind: 'boy' })));
+  await sleep(300);
+  riders[0].send(JSON.stringify({ t: 'enter', vid: 900 }));
+  riders[1].send(JSON.stringify({ t: 'enter', vid: 900 }));
+  for (const w of riders.slice(2)) w.send(JSON.stringify({ t: 'enter', vid: 900, as: 'ride', cap: 3 }));
+  await sleep(400);
+  const res = riders.map(w => w.msgs.find(m => m.t === 'enterRes'));
+  check('Only one driver per e-buggy', res[0]?.ok === true && res[1]?.ok === false);
+  check('Three passengers fit', res.slice(2).filter(r => r?.ok).length === 3);
+  riders[1].send(JSON.stringify({ t: 'enter', vid: 900, as: 'ride', cap: 3 }));
+  await sleep(300);
+  check('A fourth passenger is turned away', riders[1].msgs.filter(m => m.t === 'enterRes').pop()?.ok === false);
+  riders.forEach(w => w.close());
+  await sleep(200);
   check('Message flooding disconnects the client', await Promise.race([closed.then(() => true), sleep(3000).then(() => false)]));
   w2.close();
   const online = await (await fetch(`${BASE}/api/online`)).json();

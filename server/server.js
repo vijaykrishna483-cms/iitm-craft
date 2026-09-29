@@ -25,7 +25,19 @@ const num = (v, lo, hi) => (typeof v === 'number' && Number.isFinite(v) && v >= 
 const r2 = v => Math.round(v * 100) / 100;
 const send = (p, msg) => { if (p.ws.readyState === 1) p.ws.send(JSON.stringify(msg)); };
 const broadcast = (msg, except) => { const s = JSON.stringify(msg); for (const p of players.values()) if (p !== except && p.ws.readyState === 1) p.ws.send(s); };
-const pub = p => ({ id: p.id, name: p.name, kind: p.kind, x: p.x, y: p.y, z: p.z, f: p.f, a: p.a, v: p.v, vh: p.vh });
+const pub = p => ({ id: p.id, name: p.name, kind: p.kind, x: p.x, y: p.y, z: p.z, f: p.f, a: p.a, v: p.v, vh: p.vh, st: p.seat });
+// An e-buggy seats a driver plus up to 3 passengers; bicycles only a rider.
+const MAX_PASSENGERS = 3;
+const vehState = (vid, v, withPos) => ({ t: 'veh', vid, driver: v.driver, riders: v.riders, ...(withPos ? { x: r2(v.x), z: r2(v.z), h: r2(v.h) } : {}) });
+function leaveVehicle(p){
+  if (p.v < 0) return;
+  const v = vehicles.get(p.v);
+  if (v) {
+    if (p.seat === 0 && v.driver === p.id) { Object.assign(v, { driver: 0, x: p.x, z: p.z, h: p.vh }); broadcast(vehState(p.v, v, true), p); }
+    else if (p.seat > 0 && v.riders[p.seat - 1] === p.id) { v.riders[p.seat - 1] = 0; broadcast(vehState(p.v, v, false), p); }
+  }
+  p.v = -1; p.seat = 0;
+}
 
 // ---------- Feature suggestions ----------
 // Forwarded to a Google Form, whose responses collect in a Google Sheet. Set on the host:
@@ -114,11 +126,11 @@ wss.on('connection', ws => {
       if (m.t !== 'join') return;
       if (players.size >= MAX_PLAYERS) { ws.send(JSON.stringify({ t: 'full' })); return ws.close(); }
       me = { ws, id: nextId++, name: cleanName(m.name) || 'Student', kind: m.kind === 'girl' ? 'girl' : 'boy',
-        x: 0, y: 0, z: 0, f: 0, a: 'walk', v: -1, vh: 0, chatWith: 0, pendingFrom: new Map(), lastReq: 0, lastChat: 0, ready: false };
+        x: 0, y: 0, z: 0, f: 0, a: 'walk', v: -1, seat: 0, vh: 0, chatWith: 0, pendingFrom: new Map(), lastReq: 0, lastChat: 0, ready: false };
       players.set(me.id, me);
       send(me, { t: 'welcome', id: me.id, online: players.size,
         players: [...players.values()].filter(p => p !== me && p.ready).map(pub),
-        vehicles: [...vehicles].map(([id, v]) => [id, r2(v.x), r2(v.z), r2(v.h), v.driver]) });
+        vehicles: [...vehicles].map(([id, v]) => [id, r2(v.x), r2(v.z), r2(v.h), v.driver, v.riders]) });
       return;
     }
 
@@ -131,24 +143,34 @@ wss.on('connection', ws => {
         return;
       }
       case 'enter': {
+        // as: 'drive' (default) or 'ride' (passenger seat, e-buggies only: cap = passenger seats)
         const vid = Number.isInteger(m.vid) && m.vid >= 0 && m.vid < 1000 ? m.vid : -1;
-        if (vid < 0 || me.v >= 0) return send(me, { t: 'enterRes', vid, ok: false });
-        const v = vehicles.get(vid);
-        if (v && v.driver && v.driver !== me.id) return send(me, { t: 'enterRes', vid, ok: false });
-        vehicles.set(vid, { x: me.x, z: me.z, h: me.vh, ...(v || {}), driver: me.id });
-        me.v = vid;
-        send(me, { t: 'enterRes', vid, ok: true });
-        broadcast({ t: 'veh', vid, driver: me.id }, me);
+        const fail = () => send(me, { t: 'enterRes', vid, ok: false, as: m.as === 'ride' ? 'ride' : 'drive' });
+        if (vid < 0 || me.v >= 0) return fail();
+        let v = vehicles.get(vid);
+        if (!v) { v = { x: me.x, z: me.z, h: me.vh, driver: 0, riders: [0, 0, 0] }; vehicles.set(vid, v); }
+        if (m.as === 'ride') {
+          const cap = Math.max(0, Math.min(MAX_PASSENGERS, m.cap | 0));
+          const i = v.riders.findIndex((r, k) => k < cap && !r);
+          if (i < 0) return fail();
+          v.riders[i] = me.id; me.v = vid; me.seat = i + 1;
+        } else {
+          if (v.driver && v.driver !== me.id) return fail();
+          v.driver = me.id; me.v = vid; me.seat = 0;
+        }
+        send(me, { t: 'enterRes', vid, ok: true, as: me.seat ? 'ride' : 'drive', seat: me.seat });
+        broadcast(vehState(vid, v, false), me);
         return;
       }
       case 'exit': {
         if (me.v < 0) return;
         const v = vehicles.get(me.v);
-        if (!v) { me.v = -1; return; }
-        const x = num(m.x, 0, WORLD.x), z = num(m.z, 0, WORLD.z), h = num(m.h, -1e4, 1e4);
-        Object.assign(v, { driver: 0, x: x ?? v.x, z: z ?? v.z, h: h ?? v.h });
-        broadcast({ t: 'veh', vid: me.v, driver: 0, x: r2(v.x), z: r2(v.z), h: r2(v.h) }, me);
-        me.v = -1;
+        if (v && me.seat === 0) {
+          const x = num(m.x, 0, WORLD.x), z = num(m.z, 0, WORLD.z), h = num(m.h, -1e4, 1e4);
+          if (x !== null && z !== null) { me.x = x; me.z = z; }
+          if (h !== null) me.vh = h;
+        }
+        leaveVehicle(me);
         return;
       }
       case 'chatReq': {
@@ -187,10 +209,7 @@ wss.on('connection', ws => {
   ws.on('close', () => {
     if (!me) return;
     endChat(me);
-    if (me.v >= 0) {
-      const v = vehicles.get(me.v);
-      if (v) { Object.assign(v, { driver: 0, x: me.x, z: me.z, h: me.vh }); broadcast({ t: 'veh', vid: me.v, driver: 0, x: r2(v.x), z: r2(v.z), h: r2(v.h) }); }
-    }
+    leaveVehicle(me);
     players.delete(me.id);
     broadcast({ t: 'del', id: me.id });
   });
@@ -208,7 +227,7 @@ setInterval(() => {
   for (const p of players.values()) {
     const ps = [];
     for (const o of list) if (o !== p && Math.hypot(o.x - p.x, o.z - p.z) < VIEW_RANGE)
-      ps.push([o.id, r2(o.x), r2(o.y), r2(o.z), r2(o.f), o.a, o.v, r2(o.vh)]);
+      ps.push([o.id, r2(o.x), r2(o.y), r2(o.z), r2(o.f), o.a, o.v, r2(o.vh), o.seat]);
     send(p, { t: 'snap', n: players.size, ps });
   }
 }, TICK_MS);

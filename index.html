@@ -56,13 +56,15 @@
   #knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(243,234,216,.88);box-shadow:0 4px 14px rgba(0,0,0,.3)}
   .tbtns{position:absolute;right:max(22px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(2,62px);gap:12px;pointer-events:auto}
   .tb{width:62px;height:62px;border-radius:50%;background:rgba(15,50,54,.8);border:1.5px solid rgba(243,234,216,.32);color:var(--cream);font:700 12.5px var(--sans);display:grid;place-items:center;padding:0;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  .tb.alt{position:absolute;right:0;bottom:calc(100% + 12px);width:62px;height:40px;border-radius:20px;font-size:12px}
+  .tb[hidden]{display:none}
   .tb.act{background:var(--gold);color:#1c2a22;border-color:var(--gold-deep)}
   .tb.dim{opacity:.45}
   .tb.on{border-color:var(--gold);color:var(--gold)}
   .tb.down{transform:scale(.93);filter:brightness(1.2)}
   body.touch #place{top:58px;bottom:auto;left:14px}
-  body.touch #place .name{font-size:19px}
-  body.touch #place .eyebrow{margin-bottom:3px}
+  body.touch #place .name{font-size:14px;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+  body.touch #place .eyebrow{margin-bottom:2px;font-size:8.5px;letter-spacing:.12em}
   body.touch #mode, body.touch #escHint, body.touch #hint{display:none}
   body.touch #prompt{bottom:auto;top:58%;pointer-events:auto}
   body.touch #chat{bottom:auto;top:58px;height:min(250px,52vh);width:min(300px,44vw)}
@@ -76,7 +78,7 @@
     #clock{display:none}
     body.touch #chat{right:62px;width:min(280px,calc(100vw - 90px))}
     body.touch #chatreq{right:62px;width:min(290px,calc(100vw - 90px))}
-    body #toasts{top:auto;bottom:210px;width:calc(100vw - 32px)}
+    body #toasts{top:auto;bottom:200px;width:min(280px,calc(100vw - 40px))}
   }
   @media (max-height:520px){
     .mapcard{padding:10px 14px 14px}
@@ -99,7 +101,7 @@
     .card h1{font-size:36px;margin:8px 0}
     .card h2{font-size:26px;margin:8px 0}
     .card p{font-size:14px;margin-bottom:14px}
-    .toast h4{font-size:17px}
+    .toast h4{font-size:14px}
   }
   #escHint{position:absolute;right:20px;bottom:64px;font:500 12px var(--sans);color:var(--cream);text-shadow:0 1px 6px rgba(0,0,0,.7)}
   .text.area{min-height:120px;resize:vertical;font:400 14px/1.5 var(--sans);margin-bottom:6px;display:block}
@@ -108,6 +110,8 @@
   #fbStatus{font:500 13px var(--sans);color:var(--muted);min-height:18px;margin-top:12px}
   #fbStatus.err{color:#f0a08a}
   #prompt{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(15,50,54,.94);border:1px solid var(--line);border-radius:999px;padding:8px 18px 8px 9px;font:600 14px var(--sans);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .palt{display:inline-flex;align-items:center;gap:8px;margin-left:6px;padding-left:12px;border-left:1px solid var(--line)}
+  .palt[hidden]{display:none}
   #prompt kbd{background:var(--gold);color:#1c2a22;border-color:var(--gold-deep);font-size:12px;padding:3px 8px}
   .field-label{font:600 12px var(--sans);color:var(--muted);margin:0 0 8px}
   .pick{display:flex;gap:10px;margin-bottom:20px}
@@ -122,7 +126,10 @@
   .online b{color:var(--cream)!important}
   .text{width:100%;background:rgba(0,0,0,.2);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--cream);font:500 15px var(--sans);margin-bottom:18px;outline:none}
   .text:focus{border-color:var(--gold)}
-  #liveCount{margin-left:14px;font:500 13px var(--sans);color:var(--muted)}
+  .cardtop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .live{display:inline-flex;align-items:center;gap:7px;font:600 11.5px var(--sans);color:var(--cream);background:rgba(111,208,140,.12);border:1px solid rgba(111,208,140,.35);border-radius:999px;padding:4px 11px 4px 9px;white-space:nowrap}
+  .live::before{content:'';width:7px;height:7px;border-radius:50%;background:#6fd08c;box-shadow:0 0 0 3px rgba(111,208,140,.18)}
+  .live[hidden]{display:none}
   #chatreq{position:absolute;top:110px;right:18px;width:290px;background:rgba(15,50,54,.94);border:1px solid var(--gold);border-radius:14px;padding:14px 16px;pointer-events:auto;animation:tin .3s ease-out}
   #chatreq .req{font:500 14px/1.45 var(--sans);margin:8px 0 12px}
   #chatreq .req b{font:600 17px var(--serif)}
@@ -142,10 +149,11 @@
   #chatInput:focus{border-color:var(--gold)}
   .chathint{padding:7px 14px 10px;font:500 11px var(--sans);color:var(--muted)}
   #hint{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);font:500 13px var(--sans);color:var(--cream);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;transition:opacity .6s}
-  #toasts{position:absolute;top:18px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;width:min(400px,86vw)}
-  .toast{background:rgba(15,50,54,.94);border:1px solid var(--line);border-radius:14px;padding:12px 16px 13px;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:tin .35s ease-out}
-  .toast h4{margin:6px 0 3px;font:600 20px/1.2 var(--serif)}
-  .toast p{margin:0;font:400 13px/1.5 var(--sans);color:var(--muted)}
+  #toasts{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;width:min(300px,80vw)}
+  .toast{width:100%;background:rgba(15,50,54,.92);border:1px solid var(--line);border-radius:10px;padding:8px 12px 9px;box-shadow:0 6px 18px rgba(0,0,0,.22);animation:tin .35s ease-out}
+  .toast .eyebrow{font-size:9.5px}
+  .toast h4{margin:3px 0 2px;font:600 15px/1.25 var(--serif)}
+  .toast p{margin:0;font:400 12px/1.4 var(--sans);color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .toast.out{opacity:0;transform:translateY(-6px);transition:.4s}
   @keyframes tin{from{opacity:0;transform:translateY(-10px)}}
 
@@ -161,12 +169,28 @@
   .btn:hover{filter:brightness(1.05)}
   .btn:disabled{opacity:.5;cursor:default}
   .foot{margin-top:18px;font:400 11.5px/1.5 var(--sans);color:rgba(180,195,191,.7)}
-  #loading{position:fixed;inset:0;display:grid;place-items:center;background:#0c2226}
-  #loading .inner{width:min(360px,80vw);text-align:center}
-  #loading h1{font:700 40px var(--serif);margin:0 0 20px}
-  .bar{height:6px;background:rgba(243,234,216,.1);border-radius:6px;overflow:hidden}
-  .bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
-  #loadmsg{margin-top:12px;font:500 13px var(--sans);color:var(--muted)}
+  /* loading: a campus-plan grid, blocks being laid, a segmented progress track */
+  #loading{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:
+    radial-gradient(ellipse at 50% 40%, rgba(232,193,112,.08), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(243,234,216,.035) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(90deg, rgba(243,234,216,.035) 0 1px, transparent 1px 28px), #0c2226}
+  #loading .inner{width:min(380px,100%);display:flex;flex-direction:column;align-items:center;text-align:center}
+  #loading h1{font:700 44px/1 var(--serif);margin:10px 0 8px;letter-spacing:-.01em}
+  #loading .tag{font:400 15px var(--sans);color:var(--muted);margin:0 0 28px}
+  .stack{display:grid;grid-template-columns:repeat(3,14px);gap:4px;margin-bottom:22px}
+  .stack i{width:14px;height:14px;border-radius:2px;background:rgba(243,234,216,.08);animation:lay 2.7s infinite}
+  .stack i:nth-child(1){animation-delay:0s}   .stack i:nth-child(2){animation-delay:.15s} .stack i:nth-child(3){animation-delay:.3s}
+  .stack i:nth-child(6){animation-delay:.45s} .stack i:nth-child(5){animation-delay:.6s}  .stack i:nth-child(4){animation-delay:.75s}
+  .stack i:nth-child(7){animation-delay:.9s}  .stack i:nth-child(8){animation-delay:1.05s} .stack i:nth-child(9){animation-delay:1.2s}
+  @keyframes lay{0%,8%{background:rgba(243,234,216,.08);transform:translateY(-4px)}14%,70%{background:var(--gold);transform:none}86%,100%{background:rgba(243,234,216,.08);transform:none}}
+  .seg{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;width:100%}
+  .seg i{height:8px;border-radius:1.5px;background:rgba(243,234,216,.09);transition:background .25s}
+  .seg i.on{background:var(--gold)}
+  .loadrow{display:flex;justify-content:space-between;width:100%;margin-top:10px;font:500 12.5px var(--sans);color:var(--muted);font-variant-numeric:tabular-nums}
+  #loadtip{min-height:40px;margin:26px 0 0;font:400 13.5px/1.5 var(--sans);color:var(--cream);opacity:.85;transition:opacity .35s}
+  #loadtip b{color:var(--gold);font-weight:600}
+  .loadfoot{position:absolute;bottom:18px;left:0;right:0;text-align:center;font:400 11.5px var(--sans);color:rgba(180,195,191,.6);padding:0 16px}
+  @media (prefers-reduced-motion: reduce){ .stack i{animation:none;background:var(--gold)} }
 
   /* map */
   #mapview{position:fixed;inset:0;background:rgba(8,26,29,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px}
@@ -189,7 +213,7 @@
 </head>
 <body>
 <div id="hud" class="hidden">
-  <div id="brand"><div class="mark">IITM CRAFT</div><div class="pill">Places <b id="cPlaces">0</b></div><div class="pill">Deer <b id="cDeer">0</b></div><div class="pill online off" id="onlinePill"><i class="dot"></i><b id="cOnline">Offline</b></div></div>
+  <div id="brand"><div class="mark">IITM CRAFT</div><div class="pill">Places <b id="cPlaces">0</b></div><div class="pill online off" id="onlinePill"><i class="dot"></i><b id="cOnline">Offline</b></div></div>
   <div id="tools">
     <div class="icon" id="bMap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg><span>Map · M</span></div>
     <div class="icon" id="bTime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Time · T</span></div>
@@ -199,7 +223,7 @@
   </div>
   <div id="clock"></div>
   <div id="toasts"></div>
-  <div id="place"><div class="eyebrow" id="pZone">IIT Madras</div><div class="name" id="pName">Gajendra Circle</div></div>
+  <div id="place"><div class="eyebrow" id="pZone">Sardar Patel Road</div><div class="name" id="pName">Main Gate</div></div>
   <div id="mode" class="pill">Walking</div>
   <div id="escHint"><kbd>Esc</kbd> Pause &middot; suggest a feature</div>
   <div id="hint">Press <kbd>M</kbd> for the campus map</div>
@@ -214,7 +238,7 @@
     <input id="chatInput" maxlength="240" placeholder="Press Enter to type" autocomplete="off">
     <div class="chathint"><kbd>Enter</kbd> type &middot; <kbd>X</kbd> end chat</div>
   </div>
-  <div id="prompt" class="hidden"><kbd>E</kbd><span id="promptText"></span></div>
+  <div id="prompt" class="hidden"><kbd>E</kbd><span id="promptText"></span><span id="promptAlt" class="palt" hidden><kbd>R</kbd><span id="promptAltText"></span></span></div>
 </div>
 
 <div id="touch">
@@ -222,6 +246,7 @@
   <div class="tbtns">
     <button class="tb" id="tFly">Fly</button>
     <button class="tb act" id="tUse">Use</button>
+    <button class="tb alt" id="tSit" hidden>Sit in</button>
     <button class="tb" id="tRun">Run</button>
     <button class="tb" id="tJump">Jump</button>
   </div>
@@ -229,7 +254,7 @@
 
 <div id="start" class="screen hidden">
   <div class="card">
-    <div class="eyebrow">IIT Madras · Chennai</div>
+    <div class="cardtop"><div class="eyebrow">IIT Madras · Chennai</div><span id="liveCount" class="live" hidden></span></div>
     <h1>IITM Craft</h1>
     <p>Roam around the campus, meet new people, strike up a conversation and make new friends. Hop on an e-buggy, say hi to the deer and discover every corner of IIT Madras.</p>
     <div class="field-label">Your name</div>
@@ -245,7 +270,7 @@
       <kbd>E</kbd><span>Drive / interact</span><kbd>M</kbd><span>Campus map</span>
       <kbd>Esc</kbd><span>Pause</span><kbd>Space</kbd><span>Jump</span>
     </div>
-    <button class="btn" id="bStart">Start exploring</button><span id="liveCount"></span>
+    <button class="btn" id="bStart">Start exploring</button>
     <div class="foot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras.</div>
   </div>
 </div>
@@ -287,14 +312,25 @@
     <header>
       <div><div class="eyebrow">Campus map</div><h2>IIT Madras</h2></div>
       <div class="sp"></div>
-      <div class="maphint"><span class="desk">Click</span><span class="touch-word">Tap</span> a discovered place to travel there</div>
+      <div class="maphint"><span class="desk">Click</span><span class="touch-word">Tap</span> any place or spot to jump there</div>
       <button class="ghost" id="bMapClose">Close<span class="desk"> · M</span></button>
     </header>
     <div class="mapwrap"><canvas id="mapcv"></canvas><div id="maptip" class="hidden"></div></div>
   </div>
 </div>
 
-<div id="loading"><div class="inner"><h1>IITM Craft</h1><div class="bar"><i id="loadbar"></i></div><div id="loadmsg">Preparing</div></div></div>
+<div id="loading">
+  <div class="inner">
+    <div class="stack" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="eyebrow">IIT Madras · Chennai</div>
+    <h1>IITM Craft</h1>
+    <p class="tag">Roam the campus. Meet new people.</p>
+    <div class="seg" id="loadseg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+    <div class="loadrow"><span id="loadmsg">Getting ready</span><span id="loadpct">0%</span></div>
+    <p id="loadtip"></p>
+  </div>
+  <div class="loadfoot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras.</div>
+</div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -1224,22 +1260,38 @@ function signboard(p){
   grp.position.set(sx+.5, gy+1, sz+.5);
   scene.add(grp); signs.push(grp);
 }
+// Map-style place labels: outlined name, gold zone line for landmarks, a leader line and pin
+// down to the roof. Constant on-screen size; faded by distance and decluttered every frame.
 function floatLabel(p){
-  const t = canvasTex(640,112,(g,c) => {
-    g.font = `600 44px ${SANS}`;
-    const w = Math.min(600, g.measureText(p.n).width + (p.major ? 92 : 64));
-    const x0 = (640-w)/2;
-    g.fillStyle = 'rgba(15,50,54,.92)'; g.beginPath(); g.roundRect(x0,10,w,92,46); g.fill();
-    g.strokeStyle = 'rgba(243,234,216,.22)'; g.lineWidth = 2; g.stroke();
-    if (p.major) { g.fillStyle = '#e8c170'; g.beginPath(); g.arc(x0+40,56,9,0,7); g.fill(); }
-    g.fillStyle = '#f3ead8'; g.textAlign = 'left'; g.textBaseline = 'middle';
-    fitFont(g, p.n, 600, SANS, 44, w - (p.major ? 92 : 64));
-    g.fillText(p.n, x0 + (p.major ? 62 : 32), 58);
+  const W = 512, H = 176;
+  let textW = 0;
+  const t = canvasTex(W, H, g => {
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
+    fitFont(g, p.n, 600, SANS, 38, W - 48);
+    textW = g.measureText(p.n).width;
+    g.lineWidth = 7; g.strokeStyle = 'rgba(8,28,31,.82)'; g.strokeText(p.n, W/2, 46);
+    g.fillStyle = '#f7f1e3'; g.fillText(p.n, W/2, 46);
+    let lineTop = 60;
+    if (p.major) {
+      const zone = p.z.toUpperCase().split('').join(String.fromCharCode(8202));
+      g.font = `700 15px ${SANS}`;
+      g.lineWidth = 5; g.strokeText(zone, W/2, 74);
+      g.fillStyle = '#e8c170'; g.fillText(zone, W/2, 74);
+      lineTop = 84;
+    }
+    g.strokeStyle = 'rgba(247,241,227,.7)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(W/2, lineTop); g.lineTo(W/2, H-12); g.stroke();
+    g.beginPath(); g.arc(W/2, H-8, 6, 0, 7);
+    g.fillStyle = p.major ? '#e8c170' : '#f7f1e3'; g.fill();
+    g.lineWidth = 2.5; g.strokeStyle = 'rgba(8,28,31,.85)'; g.stroke();
   });
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, transparent:true, fog:false, depthWrite:false, sizeAttenuation:!p.major }));
-  if (p.major) s.scale.set(.2, .035, 1); else s.scale.set(9, 1.575, 1);
-  s.position.set(p.cx+.5, p.topY+2, p.cz+.5);
-  s.userData.p = p; s.renderOrder = 5;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, transparent:true, fog:false, depthWrite:false, sizeAttenuation:false }));
+  const h = p.major ? .13 : .108;
+  s.scale.set(h*W/H, h, 1);
+  s.center.set(.5, 0);                       // the pin sits on the roof
+  s.position.set(p.cx+.5, p.topY+.2, p.cz+.5);
+  s.userData = { p, tw: Math.min(1, (textW + 16)/W) };
+  s.renderOrder = 5;
   scene.add(s); labels.push(s);
 }
 
@@ -1398,6 +1450,11 @@ function spawnBuggies(){
   }
 }
 
+// Seat 0 is the driver; e-buggies also have a front passenger and a middle bench for two.
+const BUGGY_SEATS = [[-.34,.36,.5], [.34,.36,.5], [-.34,.36,-.4], [.34,.36,-.4]];
+const passengerSeats = v => v.kind === 'buggy' ? BUGGY_SEATS.length - 1 : 0;
+const seatPos = (v, seat) => seat ? BUGGY_SEATS[seat] : VSPEC[v.kind].seat;
+const freeSeat = v => { for (let i=1; i<=passengerSeats(v); i++) if (!v.riders[i-1]) return i; return -1; };
 const VSPEC = {
   buggy: { max:12.5, acc:6.5, turn:.38, lat:.72, lon:1.45, seat:[-.34,.36,.5], pose:'sit', cam:3, r:.3, prompt:'Drive the e-buggy' },
   cycle: { max:8.5, acc:5, turn:.62, lat:.18, lon:.75, seat:[0,.46,-.2], pose:'cycle', cam:.8, r:.34, prompt:'Ride the bicycle' },
@@ -1593,7 +1650,7 @@ const sfx = {
 // ============================================================
 const SPAWN = [P([4440,0])[0]+.5, G+1, P([0,900])[1]+.5];
 const player = { pos:new THREE.Vector3(...SPAWN), vel:new THREE.Vector3(), onGround:false, fly:false };
-let yaw = Math.PI, pitch = -.22, student = null, driving = null, camDist = 5.5, camD = 5.5, lastMouse = 0;
+let yaw = Math.PI, pitch = -.22, student = null, driving = null, riding = null, camDist = 5.5, camD = 5.5, lastMouse = 0;
 const keys = new Set();
 // Phones and tablets get on-screen controls instead of pointer lock (add ?touch to force them).
 const TOUCH = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
@@ -1648,6 +1705,7 @@ function updatePlayer(dt){
 }
 function teleport(x,z,face){
   if (driving) exitBuggy(true);
+  if (riding) leaveSeat();
   const standAt = (x,z) => {
     let y = WH-2; while (y > 0 && (!get(Math.floor(x),y,Math.floor(z)) || get(Math.floor(x),y,Math.floor(z)) === LEAVES)) y--;
     return { x, y:y+1, z };
@@ -1677,10 +1735,39 @@ function enterBuggy(b){
   $('mode').textContent = b.kind === 'cycle' ? 'Cycling' : 'Driving';
   if (b.kind === 'buggy') sfx.start(); else sfx.bell();
 }
+function enterSeat(b){
+  const seat = freeSeat(b); if (seat < 0) return;
+  riding = { v:b, seat }; b.riders[seat-1] = net.id || -1;
+  player.fly = false; player.vel.set(0,0,0);
+  nsend({ t:'enter', vid:b.vid, as:'ride', cap:passengerSeats(b) });
+  b.g.add(student.g); student.g.position.set(...seatPos(b, seat)); student.g.rotation.set(0,0,0);
+  animateStudent(student, 0, 0, 'sit');
+  lastMouse = 0; $('mode').textContent = 'Riding';
+}
+function leaveSeat(rejected){
+  const r = riding; if (!r) return;
+  const spot = exitSpot(r.v);
+  if (r.v.riders[r.seat-1] === (net.id || -1)) r.v.riders[r.seat-1] = 0;
+  riding = null;
+  if (!rejected) nsend({ t:'exit' });
+  scene.add(student.g);
+  player.pos.set(spot.x, spot.y, spot.z); player.vel.set(0,0,0);
+  student.facing = r.v.heading; student.g.position.copy(player.pos); student.g.rotation.y = student.facing;
+  $('mode').textContent = 'Walking';
+}
 function exitBuggy(force, rejected){
   const b = driving; if (!b) return;
-  // Look for a clear spot beside the vehicle (right side first, then around it), using each
-  // spot's real ground height. The vehicle itself is not solid, so its own position is the fallback.
+  const spot = exitSpot(b);
+  b.speed = 0; driving = null;
+  if (!rejected) nsend({ t:'exit', x:b.x, z:b.z, h:b.heading });
+  scene.add(student.g);
+  player.pos.set(spot.x, spot.y, spot.z); player.vel.set(0,0,0);
+  student.facing = b.heading; student.g.position.copy(player.pos); student.g.rotation.y = student.facing;
+  $('mode').textContent = 'Walking';
+}
+// A clear spot beside the vehicle (right side first, then around it), using each spot's real
+// ground height. The vehicle itself is not solid, so its own position is the fallback.
+function exitSpot(b){
   const sh = Math.sin(b.heading), ch = Math.cos(b.heading), side = b.kind === 'cycle' ? 1.1 : 1.9, len = b.kind === 'cycle' ? 1.4 : 2.8;
   const tries = [[-ch*side, sh*side], [ch*side, -sh*side], [-sh*len, -ch*len], [sh*len, ch*len],
     [-ch*side-sh*len*.5, sh*side-ch*len*.5], [ch*side-sh*len*.5, -sh*side-ch*len*.5], [0,0]];
@@ -1691,13 +1778,7 @@ function exitBuggy(force, rejected){
     const t = { x, y:gy, z };
     if (!collides(t)) { spot = t; break; }
   }
-  spot ||= { x:b.x, y:Math.max(b.y, Math.ceil(b.y - .01)), z:b.z };
-  b.speed = 0; driving = null;
-  if (!rejected) nsend({ t:'exit', x:b.x, z:b.z, h:b.heading });
-  scene.add(student.g);
-  player.pos.set(spot.x, spot.y, spot.z); player.vel.set(0,0,0);
-  student.facing = b.heading; student.g.position.copy(player.pos); student.g.rotation.y = student.facing;
-  $('mode').textContent = 'Walking';
+  return spot || { x:b.x, y:Math.max(b.y, Math.ceil(b.y - .01)), z:b.z };
 }
 function updateDriving(dt){
   const n = Math.ceil(dt/.03);
@@ -1734,10 +1815,11 @@ function driveStep(dt){
 // ============================================================
 function updateCamera(dt){
   let tx, ty, tz, want;
-  if (driving) {
-    tx = driving.x; ty = driving.y+2.1; tz = driving.z; want = camDist+VSPEC[driving.kind].cam;
-    if (performance.now()-lastMouse > 1400 && Math.abs(driving.speed) > .5) {
-      const target = driving.heading + Math.PI + (driving.speed < 0 ? Math.PI : 0);
+  const car = driving || (riding && riding.v);
+  if (car) {
+    tx = car.x; ty = car.y+2.1; tz = car.z; want = camDist+VSPEC[car.kind].cam;
+    if (performance.now()-lastMouse > 1400 && Math.abs(car.speed) > .5) {
+      const target = car.heading + Math.PI + (car.speed < 0 ? Math.PI : 0);
       let dd = target - yaw; dd = Math.atan2(Math.sin(dd),Math.cos(dd)); yaw += dd*Math.min(1,dt*2.2);
       pitch += (-.24 - pitch)*Math.min(1,dt*1.5);
     }
@@ -1758,14 +1840,19 @@ function updateCamera(dt){
 // ============================================================
 let focus = null;
 function findFocus(){
-  if (driving) return { type:'exit', text:'Get out' };
+  if (driving || riding) return { type:'exit', text:'Get out' };
   const px = player.pos.x, pz = player.pos.z;
   let best = null, bd = 1e9;
-  const consider = (type, o, r, text, bias=0) => {
+  const consider = (type, o, r, text, bias=0, alt=null) => {
     const d = Math.hypot(o.x-px, o.z-pz);
-    if (d < r && d+bias < bd && Math.abs(o.y-player.pos.y) < 2.5) { bd = d+bias; best = { type, o, text }; }
+    if (d < r && d+bias < bd && Math.abs(o.y-player.pos.y) < 2.5) { bd = d+bias; best = { type, o, text, alt }; }
   };
-  for (const b of buggies) if (!b.remote) consider('drive', b, b.kind === 'cycle' ? 2 : 3.2, VSPEC[b.kind].prompt);
+  for (const b of buggies) {
+    if (b.kind === 'cycle') { if (!b.remote) consider('drive', b, 2, VSPEC.cycle.prompt); continue; }
+    const seats = freeSeat(b) > 0;
+    if (!b.remote) consider('drive', b, 3.2, VSPEC.buggy.prompt, 0, seats ? 'Sit in' : null);   // free: drive, or just sit
+    else if (seats) consider('ride', b, 3.2, 'Get in the e-buggy');                               // someone's driving: passenger only
+  }
   if (!net.chatWith) for (const p of net.peers.values()) if (!p.vehicle) consider('chat', p, 4, `Chat with ${p.name}`, -1.5);
   for (const d of deer) consider('deer', d, 5.5, d.greeted ? 'Pat the deer' : d.kind === 'buck' ? 'Say hi to the blackbuck' : 'Say hi to the spotted deer', .5);
   for (const m of monkeys) consider('monkey', m, 3.6, 'Wave at the monkey', .5);
@@ -1776,7 +1863,8 @@ function interact(){
   focus = findFocus();
   if (!focus) return;
   if (focus.type === 'drive') return enterBuggy(focus.o);
-  if (focus.type === 'exit') return exitBuggy(false);
+  if (focus.type === 'ride') return enterSeat(focus.o);
+  if (focus.type === 'exit') return riding ? leaveSeat() : exitBuggy(false);
   if (focus.type === 'deer') return greet(focus.o);
   if (focus.type === 'chat') return requestChat(focus.o);
   if (focus.type === 'monkey') {
@@ -1788,7 +1876,6 @@ function interact(){
 // ============================================================
 //  Quest, HUD and toasts
 // ============================================================
-const DEER_GOAL = 15;
 let greeted = 0, won = false, placeList = [];
 const $ = id => document.getElementById(id);
 function greet(d){
@@ -1796,16 +1883,15 @@ function greet(d){
   for (let i=0;i<3;i++) setTimeout(() => heart(d.x, d.y+2, d.z), i*140);
   if (d.greeted) return;
   d.greeted = true; greeted++; sfx.chime();
-  toast('Wildlife', d.kind === 'buck' ? 'Blackbuck' : 'Spotted deer', `Greeted ${Math.min(greeted,DEER_GOAL)} of ${DEER_GOAL}. It won't run from you any more.`);
+  toast('Wildlife', d.kind === 'buck' ? 'Blackbuck' : 'Spotted deer', "It won't run from you any more.");
   updateCounts();
 }
 function updateCounts(){
   const found = placeList.filter(p => p.found).length;
   $('cPlaces').textContent = `${found}/${placeList.length}`;
-  $('cDeer').textContent = `${Math.min(greeted,DEER_GOAL)}/${DEER_GOAL}`;
-  if (!won && found === placeList.length && greeted >= DEER_GOAL) {
+  if (!won && placeList.length && found === placeList.length) {
     won = true;
-    setTimeout(() => toast('Campus complete', 'You know IIT Madras', 'Every place found and fifteen deer befriended.'), 900);
+    setTimeout(() => toast(`All ${placeList.length} places`, 'You completed the journey', ''), 900);
   }
 }
 const toastLog = [];
@@ -1835,12 +1921,29 @@ function checkPlaces(){
   else { zone = 'IIT Madras'; name = 'Guindy forest'; }
   if (name !== curPlace) { curPlace = name; $('pZone').textContent = zone; $('pName').textContent = name; }
 }
+const _lv = new THREE.Vector3(), _boxes = [];
 function updateLabels(){
   const px = camera.position.x, pz = camera.position.z;
+  const k = camera.projectionMatrix.elements[5], aspect = camera.aspect;   // screen size of a fixed-size sprite
+  const cand = [];
   for (const s of labels) {
-    const p = s.userData.p, d = Math.hypot(px-p.cx, pz-p.cz);
-    if (p.major) { s.visible = d > 14; s.material.opacity = Math.min(1, (d-14)/10); }
-    else { s.visible = d < 55; s.material.opacity = Math.max(0, Math.min(1, (55-d)/15)); }
+    const p = s.userData.p, d = Math.hypot(px-p.cx-.5, pz-p.cz-.5);
+    const far = p.major ? 170 : 75, near = p.r ? Math.min(14, p.r*.7) : 12;
+    const a = Math.min(1, (d-near)/8, (far-d)/20);
+    if (a <= 0) { s.visible = false; continue; }
+    _lv.copy(s.position).project(camera);
+    if (_lv.z > 1 || Math.abs(_lv.x) > 1.2 || Math.abs(_lv.y) > 1.2) { s.visible = false; continue; }
+    cand.push({ s, a, x:_lv.x, y:_lv.y, pri:(p.major ? 0 : 400) + d });
+  }
+  cand.sort((u,v) => u.pri - v.pri);
+  _boxes.length = 0;
+  for (const c of cand) {
+    const s = c.s, hy = s.scale.y*k, hx = s.scale.x*k/aspect*s.userData.tw;
+    // the text occupies the top part of the sprite; the pin line below may overlap freely
+    const b = { x0:c.x-hx/2, x1:c.x+hx/2, y0:c.y+hy*.55, y1:c.y+hy };
+    if (_boxes.some(o => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0)) { s.visible = false; continue; }
+    _boxes.push(b);
+    s.visible = true; s.material.opacity = c.a;
   }
   for (const g of signs) g.visible = Math.hypot(px-g.position.x, pz-g.position.z) < 90;
   for (const b of buggies) b.g.visible = Math.hypot(px-b.x, pz-b.z) < (b.kind === 'cycle' ? 65 : 140);
@@ -1848,9 +1951,16 @@ function updateLabels(){
 let promptText = '';
 function updatePrompt(){
   focus = state === 'play' ? findFocus() : null;
-  const t = focus ? focus.text : '';
-  if (t !== promptText) { promptText = t; $('prompt').classList.toggle('hidden', !t); $('promptText').textContent = t; }
+  const t = focus ? focus.text + '|' + (focus.alt || '') : '';
+  if (t !== promptText) {
+    promptText = t;
+    $('prompt').classList.toggle('hidden', !focus);
+    $('promptText').textContent = focus ? focus.text : '';
+    $('promptAlt').hidden = !(focus && focus.alt);
+    if (focus && focus.alt) $('promptAltText').textContent = focus.alt;
+  }
 }
+function interactAlt(){ focus = findFocus(); if (focus && focus.alt && focus.type === 'drive') enterSeat(focus.o); }
 
 // ============================================================
 //  Campus map overlay
@@ -1914,14 +2024,19 @@ mapcv.addEventListener('mousemove', e => {
   tip.style.top = ((p.cz+.5)/WZ*r.height + r.top - wr.top) + 'px';
   tip.innerHTML = `<b></b><span></span>`;
   tip.children[0].textContent = p.n;
-  tip.children[1].textContent = p.found ? `${p.z} · Click to travel` : 'Not discovered yet';
+  tip.children[1].textContent = `${p.z} · Click to go there`;
   tip.classList.remove('hidden');
 });
 mapcv.addEventListener('mouseleave', () => { hoverPlace = null; tip.classList.add('hidden'); drawMap(); });
 mapcv.addEventListener('click', e => {
   const p = mapPlaceAt(e);
-  if (!p || !p.found) return;
-  teleport(p.front[0]+.5, p.front[1]+.5, p.front[1] > p.cz ? 0 : Math.PI);
+  if (p) teleport(p.front[0]+.5, p.front[1]+.5, p.front[1] > p.cz ? 0 : Math.PI);
+  else {
+    // anywhere else on the map: land on the ground at that spot
+    const r = mapcv.getBoundingClientRect(), x = (e.clientX-r.left)/r.width*WX, z = (e.clientY-r.top)/r.height*WZ;
+    if (x < 4 || z < 4 || x > WX-4 || z > WZ-4) return;
+    teleport(x, z);
+  }
   closeMap(true);
 });
 
@@ -1951,7 +2066,7 @@ function connect(){
   ws.onclose = () => {
     net.ws = null; net.status = 'offline'; setOnline();
     for (const id of [...net.peers.keys()]) removePeer(id);
-    for (const v of buggies) v.remote = 0;
+    for (const v of buggies) { v.remote = 0; v.riders = [0,0,0]; }
     if (net.chatWith) closeChat(false, 'Connection lost.');
     hideChatRequest();
     setTimeout(connect, Math.min(20000, 2500 * ++net.retry));
@@ -1963,16 +2078,23 @@ function onNet(m){
     case 'welcome':
       net.id = m.id; net.online = m.online; net.status = 'online'; net.retry = 0; setOnline();
       m.players.forEach(upsertPeer);
-      m.vehicles.forEach(([vid,x,z,h,driver]) => applyVehicle(vid,x,z,h,driver));
+      m.vehicles.forEach(([vid,x,z,h,driver,riders]) => applyVehicle(vid,x,z,h,driver,riders));
       if (driving) nsend({ t:'enter', vid:driving.vid });
+      if (riding) nsend({ t:'enter', vid:riding.v.vid, as:'ride', cap:passengerSeats(riding.v) });
       break;
     case 'full': toast('Server', 'Campus is full', 'Too many students online. Try again in a few minutes.'); break;
     case 'add': upsertPeer(m.p); break;
     case 'del': removePeer(m.id); break;
     case 'snap': net.online = m.n; setOnline(); m.ps.forEach(snapPeer); break;
-    case 'veh': applyVehicle(m.vid, m.x, m.z, m.h, m.driver); break;
+    case 'veh': applyVehicle(m.vid, m.x, m.z, m.h, m.driver, m.riders); break;
     case 'enterRes':
-      if (!m.ok && driving && driving.vid === m.vid) { exitBuggy(true, true); toast('Vehicles', 'Someone got there first', 'Another student is already using it.'); }
+      if (!m.ok && driving && driving.vid === m.vid) { exitBuggy(true, true); toast('Vehicles', 'Someone got there first', 'Another student is already driving it.'); }
+      else if (!m.ok && riding && riding.v.vid === m.vid) { leaveSeat(true); toast('Vehicles', 'This e-buggy is full', 'All four seats are taken.'); }
+      else if (m.ok && riding && riding.v.vid === m.vid && m.seat && m.seat !== riding.seat) {
+        // the server gave us a different seat: move there
+        const v = riding.v; v.riders[riding.seat-1] = 0; riding.seat = m.seat; v.riders[m.seat-1] = net.id;
+        student.g.position.set(...seatPos(v, m.seat));
+      }
       break;
     case 'chatReq': showChatRequest(m.from, m.name); break;
     case 'chatDeclined': toast('Chat', `${m.name} can't chat right now`, 'Your request was declined.'); break;
@@ -2001,36 +2123,47 @@ function upsertPeer(d){
     s.g.add(tag); scene.add(s.g);
     net.peers.set(d.id, { id:d.id, name:d.name, kind:d.kind, s, tag, x:d.x, y:d.y, z:d.z, f:d.f, tx:d.x, ty:d.y, tz:d.z, tf:d.f, vh:d.vh||0, a:d.a||'walk', v:-1, vehicle:null, speed:0 });
   }
-  snapPeer([d.id, d.x, d.y, d.z, d.f, d.a, d.v, d.vh]);
+  snapPeer([d.id, d.x, d.y, d.z, d.f, d.a, d.v, d.vh, d.st || 0]);
 }
-function snapPeer([id,x,y,z,f,a,v,vh]){
+function snapPeer([id,x,y,z,f,a,v,vh,st=0]){
   const p = net.peers.get(id); if (!p) return;
   if (Math.hypot(x-p.x, z-p.z) > 30) { p.x = x; p.y = y; p.z = z; }
   Object.assign(p, { tx:x, ty:y, tz:z, tf:f, a, vh });
-  if (v !== p.v) {
+  if (v !== p.v || st !== p.seat) {
     if (p.vehicle) unseatPeer(p);
-    p.v = v;
+    p.v = v; p.seat = st;
     const veh = v >= 0 ? buggies[v] : null;
-    if (veh && veh !== driving) { veh.remote = id; seatPeer(p, veh); }
+    if (veh && !(st === 0 && veh === driving)) {
+      if (st === 0) veh.remote = id; else veh.riders[st-1] = id;
+      seatPeer(p, veh, st);
+    }
   }
 }
-function seatPeer(p, v){
-  v.g.add(p.s.g); p.s.g.position.set(...VSPEC[v.kind].seat); p.s.g.rotation.set(0,0,0);
-  p.vehicle = v; animateStudent(p.s, 0, 0, VSPEC[v.kind].pose);
+function seatPeer(p, v, seat=0){
+  v.g.add(p.s.g); p.s.g.position.set(...seatPos(v, seat)); p.s.g.rotation.set(0,0,0);
+  p.vehicle = v; p.seat = seat; animateStudent(p.s, 0, 0, seat ? 'sit' : VSPEC[v.kind].pose);
 }
 function unseatPeer(p){ scene.add(p.s.g); p.vehicle = null; }
 function removePeer(id){
   const p = net.peers.get(id); if (!p) return;
-  if (p.vehicle) { p.vehicle.remote = 0; unseatPeer(p); }
+  if (p.vehicle) {
+    if (p.seat) p.vehicle.riders[p.seat-1] = 0; else p.vehicle.remote = 0;
+    unseatPeer(p);
+  }
   scene.remove(p.s.g); p.tag.material.map.dispose(); p.tag.material.dispose();
   net.peers.delete(id);
   if (net.pendingReq && net.pendingReq.from === id) hideChatRequest();
 }
-function applyVehicle(vid,x,z,h,driver){
-  const v = buggies[vid]; if (!v || v === driving) return;
-  if (driver && driver !== net.id) { v.remote = driver; const p = net.peers.get(driver); if (p && p.vehicle !== v) { if (p.vehicle) unseatPeer(p); seatPeer(p, v); } return; }
+function applyVehicle(vid,x,z,h,driver,riders){
+  const v = buggies[vid]; if (!v) return;
+  if (Array.isArray(riders)) {
+    v.riders = riders.slice(0, 3).map(r => r | 0);
+    for (const p of net.peers.values()) if (p.vehicle === v && p.seat > 0 && v.riders[p.seat-1] !== p.id) unseatPeer(p);
+  }
+  if (v === driving) return;
+  if (driver && driver !== net.id) { v.remote = driver; const p = net.peers.get(driver); if (p && (p.vehicle !== v || p.seat)) { if (p.vehicle) unseatPeer(p); seatPeer(p, v, 0); } return; }
   if (!driver) {
-    for (const p of net.peers.values()) if (p.vehicle === v) unseatPeer(p);
+    for (const p of net.peers.values()) if (p.vehicle === v && !p.seat) unseatPeer(p);
     v.remote = 0;
     if (typeof x === 'number') {
       const gy = carGround(x, z, G+4);
@@ -2048,9 +2181,11 @@ function updatePeers(dt){
     p.speed += (Math.hypot(p.x-ox, p.z-oz)/Math.max(dt,1e-3) - p.speed)*Math.min(1,dt*8);
     const d = Math.hypot(p.x-player.pos.x, p.z-player.pos.z);
     p.tag.visible = d < 70;
-    if (p.vehicle) {
+    if (p.vehicle && p.seat) {
+      // passengers just sit; the vehicle is moved by its driver
+    } else if (p.vehicle) {
       const v = p.vehicle, V = VSPEC[v.kind];
-      v.x = p.x; v.y = p.y; v.z = p.z; v.heading += angDiff(p.vh, v.heading)*k;
+      v.x = p.x; v.y = p.y; v.z = p.z; v.speed = p.speed; v.heading += angDiff(p.vh, v.heading)*k;
       v.g.position.set(v.x, v.y, v.z); v.g.rotation.y = v.heading;
       v.wheels.forEach(w => w.spin.rotation.x += p.speed*dt/V.r);
       if (v.kind === 'cycle') animateStudent(p.s, dt, p.speed, 'cycle');
@@ -2064,9 +2199,10 @@ function updatePeers(dt){
 function netSend(dt){
   if (net.status !== 'online' || !student || (net.sendT -= dt) > 0) return;
   net.sendT = .1;
-  const a = driving ? VSPEC[driving.kind].pose : player.fly ? 'fly' : player.onGround ? 'walk' : 'air';
+  const car = driving || (riding && riding.v);
+  const a = driving ? VSPEC[driving.kind].pose : riding ? 'sit' : player.fly ? 'fly' : player.onGround ? 'walk' : 'air';
   const r = v => Math.round(v*100)/100;
-  nsend({ t:'s', x:r(player.pos.x), y:r(player.pos.y), z:r(player.pos.z), f:r(student.facing), a, vh: driving ? r(driving.heading) : 0 });
+  nsend({ t:'s', x:r(player.pos.x), y:r(player.pos.y), z:r(player.pos.z), f:r(student.facing), a, vh: car ? r(car.heading) : 0 });
 }
 
 // ---------- chat ----------
@@ -2151,12 +2287,8 @@ function openMap(){
   state = 'map'; sizeMap(); drawMap(); show('mapview', true); show('pause', false);
   if (document.pointerLockElement) document.exitPointerLock();
 }
-// New students start on the lawn road at Gajendra Circle, facing the statue.
-function respawn(){
-  const q = placeList.find(p => p.n === 'Gajendra Circle');
-  if (q) teleport(q.front[0]+.5, q.front[1]+.5, q.front[1] > q.cz ? 0 : Math.PI);
-  else teleport(SPAWN[0], SPAWN[2], Math.PI);
-}
+// New students start on Sardar Patel Road, facing the Main Gate.
+function respawn(){ teleport(SPAWN[0], SPAWN[2], Math.PI); }
 function closeMap(relock){ show('mapview', false); state = 'paused'; if (relock) lock(); else show('pause', true); }
 function begin(kind, name){
   if (!student) { student = makeStudent(kind); scene.add(student.g); }
@@ -2171,7 +2303,7 @@ function playerName(){
   return n;
 }
 try { $('nameInput').value = localStorage.getItem('iitmcraft.name') || ''; } catch {}
-if (location.protocol.startsWith('http')) fetch('/api/online').then(r => r.json()).then(d => { $('liveCount').textContent = d.online ? `${d.online} student${d.online > 1 ? 's' : ''} on campus now` : 'Be the first on campus'; }).catch(() => {});
+if (location.protocol.startsWith('http')) fetch('/api/online').then(r => r.json()).then(d => { const l = $('liveCount'); l.textContent = d.online ? `${d.online} on campus now` : 'Be the first on campus'; l.hidden = false; }).catch(() => {});
 document.querySelectorAll('.who').forEach(b => b.onclick = () => {
   chosen = b.dataset.kind;
   document.querySelectorAll('.who').forEach(o => o.classList.toggle('on', o === b));
@@ -2244,6 +2376,7 @@ document.addEventListener('keydown', e => {
   if (e.repeat) return;
   keys.add(e.code);
   if (e.code === 'KeyE') interact();
+  if (e.code === 'KeyR') interactAlt();
   if (e.code === 'KeyH' && driving) honk();
   if (e.code === 'KeyF' && !driving) toggleFly();
   if (e.code === 'KeyT') dayT = (dayT < .5 ? .5 : 0) + .02;
@@ -2304,6 +2437,7 @@ function initTouch(){
   };
   let running = false, sinking = false;
   press('tUse', interact);
+  press('tSit', interactAlt);
   press('tJump', () => keys.add('Space'), () => keys.delete('Space'));
   press('tFly', () => { if (driving) honk(); else { toggleFly(); if (running) { running = false; keys.delete('ShiftLeft'); } } });
   press('tRun', () => {
@@ -2314,14 +2448,15 @@ function initTouch(){
   $('bPause').onclick = pauseGame;
 
   // keep labels in step with what the buttons will do
-  const USE = { exit:'Get out', drive:'Ride', chat:'Chat', deer:'Say hi', monkey:'Wave' };
+  const USE = { exit:'Get out', drive:'Drive', ride:'Get in', chat:'Chat', deer:'Say hi', monkey:'Wave' };
   let lastSig = '';
   touchLabels = () => {
     if (!running && keys.has('ShiftLeft') && !sinking) keys.delete('ShiftLeft');
-    const sig = [focus && focus.type, !!driving, player.fly, running].join();
+    const sig = [focus && focus.type, focus && focus.alt, !!driving, !!riding, player.fly, running].join();
     if (sig === lastSig) return; lastSig = sig;
-    $('tUse').textContent = focus ? USE[focus.type] || 'Use' : 'Use';
+    $('tUse').textContent = !focus ? 'Use' : focus.type === 'drive' ? (focus.o.kind === 'cycle' ? 'Ride' : 'Drive') : USE[focus.type] || 'Use';
     $('tUse').classList.toggle('dim', !focus);
+    $('tSit').hidden = !(focus && focus.alt);
     $('tJump').textContent = driving ? 'Brake' : player.fly ? 'Up' : 'Jump';
     $('tFly').textContent = driving ? (driving.kind === 'cycle' ? 'Bell' : 'Horn') : player.fly ? 'Land' : 'Fly';
     $('tRun').textContent = player.fly ? 'Down' : 'Run';
@@ -2354,7 +2489,27 @@ function updateSky(dt){
 //  Boot
 // ============================================================
 async function boot(){
-  const step = async (pct, msg) => { $('loadbar').style.width = pct + '%'; $('loadmsg').textContent = msg; await tick(); await tick(); };
+  const seg = $('loadseg'), N = 24;
+  for (let i=0;i<N;i++) seg.appendChild(document.createElement('i'));
+  const step = async (pct, msg) => {
+    const on = Math.round(pct/100*N);
+    [...seg.children].forEach((c,i) => c.classList.toggle('on', i < on));
+    seg.setAttribute('aria-valuenow', Math.round(pct));
+    $('loadpct').textContent = Math.round(pct) + '%'; $('loadmsg').textContent = msg;
+    await tick(); await tick();
+  };
+  const act = TOUCH ? 'tap <b>Use</b>' : 'press <b>E</b>';
+  const TIPS = [
+    `Walk up to an e-buggy and ${act} to drive it.`,
+    `Spotted deer and blackbuck roam freely. Walk slowly and ${act} to say hi.`,
+    `Walk up to another student and ${act} to start a chat.`,
+    `Open the <b>campus map</b> to jump to any place on campus.`,
+    `Gajendra Circle is where Bonn Avenue and Delhi Avenue meet.`,
+    `The campus borders Guindy National Park, so keep an eye out for monkeys.`,
+  ];
+  let tipI = Math.floor(Math.random()*TIPS.length);
+  const showTip = () => { const el = $('loadtip'); if (!el) return; el.style.opacity = 0; setTimeout(() => { el.innerHTML = TIPS[tipI++ % TIPS.length]; el.style.opacity = .85; }, 350); };
+  showTip(); const tipTimer = setInterval(showTip, 3200);
   await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]);
   await Promise.all([document.fonts.load(`600 40px Fraunces`), document.fonts.load(`600 40px Inter`)]).catch(() => {});
   await step(4, 'Shaping the land');           genTerrain();
@@ -2365,15 +2520,17 @@ async function boot(){
   await step(42, 'Planting the forest');       genTrees();
   placeList = PLACES.filter(p => !p.skip);
   placeList.forEach(p => { p.found = false; signboard(p); floatLabel(p); });
-  await step(46, 'Parking the e-buggies');     spawnBuggies(); spawnCycles(); buggies.forEach((b,i) => b.vid = i); spawnWildlife();
+  await step(46, 'Parking the e-buggies');     spawnBuggies(); spawnCycles(); buggies.forEach((b,i) => { b.vid = i; b.riders = [0,0,0]; }); spawnWildlife();
   for (let z=0;z<WZ;z++) for (let x=0;x<WX;x++) mapPixel(x,z);
   const all = [];
   for (let cz=0;cz<WZ/CS;cz++) for (let cx=0;cx<WX/CS;cx++) all.push([cx,cz]);
   for (let i=0;i<all.length;i++) {
     buildChunk(...all[i]);
-    if (i % 10 === 9) await step(48 + 50*i/all.length, 'Meshing the campus');
+    if (i % 10 === 9) await step(48 + 52*i/all.length, 'Bringing the campus to life');
   }
   updateCounts();
+  await step(100, 'Ready');
+  clearInterval(tipTimer);
   $('loading').remove();
   state = 'title'; show('start', true);
 }
@@ -2400,7 +2557,7 @@ renderer.setAnimationLoop(now => {
   if (state === 'loading') return;
   adaptQuality(dt);
   if (state === 'play') {
-    const sprinting = driving ? (updateDriving(dt), false) : updatePlayer(dt);
+    const sprinting = driving ? (updateDriving(dt), false) : riding ? (player.pos.set(riding.v.x, riding.v.y, riding.v.z), false) : updatePlayer(dt);
     updateWildlife(dt, sprinting);
     checkPlaces();
     updateCamera(dt);
@@ -2425,7 +2582,7 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   teleport, places: () => placeList, player, buggies, deer, monkeys, openMap, begin, enterBuggy, exitBuggy, keys, net, requestChat, respondChat, closeChat,
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
-  stateNow: () => state, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT,
+  stateNow: () => state, ridingNow: () => riding && { vid: riding.v.vid, seat: riding.seat }, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT,
 };
 </script>
 </body>
