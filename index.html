@@ -204,7 +204,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 // ============================================================
 const WX = 480, WZ = 528, WH = 48, CS = 16, G = 12;
 const AIR=0, GRASS=1, DIRT=2, STONE=3, LOG=4, LEAVES=5, SAND=6, WATER=7, BRICK=8, CONCRETE=9, GLASS=10,
-      PLANKS=11, ROAD=12, PAVER=13, GOLD=14, LAMP=15, BLUE=16, ROOF=17, CREAM=18, TRACK=19;
+      PLANKS=11, ROAD=12, PAVER=13, GOLD=14, LAMP=15, BLUE=16, ROOF=17, CREAM=18, TRACK=19, GRANITE=20, MAROON=21, HEDGE=22;
 const DEF = [null,
   {n:'Grass', t:[0,1,2]}, {n:'Dirt', t:[2,2,2]}, {n:'Stone', t:[3,3,3]}, {n:'Log', t:[5,4,5]},
   {n:'Leaves', t:[6,6,6], cut:1}, {n:'Sand', t:[7,7,7]}, {n:'Water', t:[8,8,8], liquid:1, trans:1},
@@ -212,6 +212,7 @@ const DEF = [null,
   {n:'Planks', t:[12,12,12]}, {n:'Road', t:[13,13,13]}, {n:'Paver', t:[14,14,14]}, {n:'Gold', t:[15,15,15]},
   {n:'Lamp', t:[16,16,16]}, {n:'IITM Blue', t:[17,17,17]}, {n:'Roof Tile', t:[18,18,18]},
   {n:'Plaster', t:[19,19,19]}, {n:'Track', t:[20,20,20]},
+  {n:'Granite', t:[21,21,21]}, {n:'Maroon', t:[22,22,22]}, {n:'Hedge', t:[23,23,23]},
 ];
 DEF.forEach(d => d && (d.solid = !d.liquid));
 
@@ -255,6 +256,12 @@ tile(17, () => vary(40,82,160,.1));
 tile(18, (x,y) => y%4 === 3 ? vary(132,64,44,.08) : vary(190,102,70,.14));
 tile(19, () => vary(232,216,176,.05));
 tile(20, (x,y) => y%8 === 0 ? rgb(236,228,214) : vary(178,92,70,.1));
+{ // gate tiles use their own random stream so the rest of the world stays the same
+  const R = mulberry(4440), v = (r,g,b,k) => { const m = 1 + (R()-.5)*k; return rgb(Math.min(255,r*m), Math.min(255,g*m), Math.min(255,b*m)); };
+  tile(21, (x,y) => (x === 15 || y === 15) ? rgb(112,58,56) : R() < .2 ? v(96,48,46,.25) : R() < .12 ? v(206,156,146,.15) : v(160,94,88,.1));
+  tile(22, () => v(132,34,44,.08));
+  tile(23, () => R() < .3 ? v(168,186,164,.18) : v(122,146,120,.22));
+}
 
 function makeTex(c){ const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace; return t; }
 const tex = makeTex(atlas), etex = makeTex(emiss);
@@ -650,6 +657,222 @@ function gate(cx,cz,axisX,span,h,beam){
   for (let d=-span-1; d<=span+1; d++) for (let e=0;e<2;e++) { const [x,z] = a(d,e); fill(x,G+h,z,x,G+h+1,z,beam); }
   return G+h+2;
 }
+// Main Gate on Sardar Patel Road, after photos of the real entrance: a pink-granite monument with
+// white pilasters, a maroon frieze and the gold name and seal, on a planted island between the
+// IN and OUT carriageways, flanked by granite pillars with globe lamps.
+function mainGate(cx,cz){
+  const zA = 12, zB = cz+6, HW = 16;
+  // one wide road mouth from Sardar Patel Road, tapering back into the avenue behind the gate
+  for (let z=zA; z<=zB+10; z++) {
+    const hw = z <= zB ? HW : Math.max(3, Math.round(HW - (z-zB)*1.3));
+    for (let x=cx-hw-2; x<=cx+hw+2; x++) {
+      levelCol(x,z, Math.abs(x-cx) <= hw ? ROAD : PAVER);
+      noTree[z*WX+x] = 1;
+    }
+  }
+  reserve(cx-HW-3, zA, cx+HW+3, zB+11);
+  for (let x=cx-HW-3; x<=cx+HW+3; x++) for (let z=zA-2; z<zA; z++) if (get(x,G+1,z) === CONCRETE) fill(x,G+1,z,x,G+4,z,AIR);
+
+  // planted island with a concrete kerb
+  const ix0 = cx-8, ix1 = cx+8, iz0 = cz-4, iz1 = cz+5;
+  for (let z=iz0; z<=iz1; z++) for (let x=ix0; x<=ix1; x++) {
+    set(x,G,z,DIRT);
+    set(x,G+1,z, x===ix0 || x===ix1 || z===iz0 || z===iz1 ? CONCRETE : GRASS);
+  }
+  // monument: granite core, white pilasters and lintel, maroon frieze, white cornice, grey slab
+  fill(cx-5,G+2,cz,cx+5,G+2,cz+3,CONCRETE);                     // plinth
+  fill(cx-4,G+3,cz+1,cx+4,G+7,cz+2,GRANITE);
+  for (const x of [cx-5,cx+5]) fill(x,G+3,cz,x,G+8,cz+3,CREAM);
+  fill(cx-5,G+8,cz,cx+5,G+8,cz+3,CREAM);
+  fill(cx-5,G+9,cz,cx+5,G+9,cz+3,MAROON);
+  fill(cx-6,G+10,cz-1,cx+6,G+10,cz+4,CREAM);
+  fill(cx-6,G+11,cz-1,cx+6,G+11,cz+4,CONCRETE);
+  // front garden: green hedge along the fence, silver hedges either side of a centre plant, uplights
+  fill(cx-7,G+2,iz0+1,cx+7,G+2,iz0+1,LEAVES);
+  fill(cx-6,G+2,cz-2,cx-1,G+2,cz-2,HEDGE); fill(cx+1,G+2,cz-2,cx+6,G+2,cz-2,HEDGE);
+  set(cx-7,G+3,iz0+1,LEAVES); set(cx+7,G+3,iz0+1,LEAVES);
+  for (const x of [cx-2,cx+2]) set(x,G+1,cz-1,LAMP);
+  // granite gate pillars: two on the island, two on the outer kerbs
+  const PX = [cx-HW, cx-8, cx+7, cx+HW-1];
+  for (const x of PX) fill(x,G+1,cz+3,x+1,G+6,cz+4,GRANITE);
+  // compound wall along the road, running out from the outer pillars
+  for (const s of [-1,1]) for (let d=HW+2; d<=HW+14; d++) {
+    const x = cx+s*d; if (x < 1 || x >= WX-1) continue;
+    for (const z of [cz+3,cz+4]) levelCol(x,z,GRASS);
+    fill(x,G+1,cz+4,x,G+2,cz+4,CREAM); set(x,G+3,cz+4,MAROON);
+    if (d % 6 === 0) { fill(x,G+1,cz+4,x,G+3,cz+4,GRANITE); set(x,G+4,cz+4,CREAM); }
+    reserve(x,cz+3,x,cz+5);
+  }
+  gateDecor(cx,cz,PX,iz0);
+  return G+11;
+}
+
+function gateDecor(cx,cz,PX,iz0){
+  const grp = new THREE.Group(), parts = [];
+  const shaded = (geo,color) => {
+    _col.set(color);
+    const n = geo.attributes.position.count, a = new Float32Array(n*3);
+    for (let i=0;i<n;i++) { a[i*3] = _col.r; a[i*3+1] = _col.g; a[i*3+2] = _col.b; }
+    geo.setAttribute('color', new THREE.BufferAttribute(a,3));
+    return geo;
+  };
+  // granite name panel on both faces of the monument, recessed between the pilasters
+  const face = canvasTex(1152,640,g => gatePanel(g,1152,640,false));
+  const glow = canvasTex(1152,640,g => gatePanel(g,1152,640,true));
+  const pm = new THREE.MeshLambertMaterial({ map:face, emissiveMap:glow, emissive:0xffffff });
+  for (const back of [0,1]) {
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(9,5), pm);
+    pl.position.set(cx+.5, G+5.5, back ? cz+3.01 : cz+.99);
+    pl.rotation.y = back ? 0 : Math.PI;
+    grp.add(pl);
+  }
+  // pillar caps: white slab, stepped cap, small roof and a stem for the globe
+  const globes = [];
+  for (const x of PX) {
+    const px = x+1, pz = cz+4, top = G+7;
+    parts.push(part(2.5,.3,2.5,'#f1ece0',px,top+.15,pz));
+    parts.push(part(2.0,.45,2.0,'#e9e2d2',px,top+.52,pz));
+    parts.push(part(1.5,.18,1.5,'#f4efe4',px,top+.84,pz));
+    parts.push(part(.9,.28,.9,'#dcd4c2',px,top+1.07,pz));
+    parts.push(part(.14,.5,.14,'#3a3a3a',px,top+1.45,pz));
+    globes.push(new THREE.SphereGeometry(.42,12,8).translate(px,top+1.95,pz));
+  }
+  const gm = new THREE.Mesh(mergeGeometries(globes), new THREE.MeshBasicMaterial({ color:0xfff3d6 }));
+  grp.add(gm);
+  // IN / OUT plates on the road-facing side of each pillar
+  const plate = txt => canvasTex(128,64,g => { g.fillStyle = '#16181a'; g.fillRect(0,0,128,64); g.fillStyle = '#f5f5f0'; g.font = `700 40px Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt,64,34); });
+  const inTex = plate('IN'), outTex = plate('OUT');
+  for (const x of PX) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(.8,.4), new THREE.MeshLambertMaterial({ map: x > cx ? inTex : outTex }));
+    m.position.set(x+1, G+3.2, cz+2.99); m.rotation.y = Math.PI; grp.add(m);
+  }
+  // black iron fence with a wavy top rail and lamp-emblem rings along the front kerb
+  const IRON = '#1d2023', fz = iz0+.5, fy = G+2;
+  const railY = x => fy + .62 + .22*Math.cos((x-cx)/2*Math.PI);
+  for (let x=cx-7.9; x<=cx+8.9; x+=.25) parts.push(part(.05,railY(x)-fy,.05,IRON,x,fy+(railY(x)-fy)/2,fz));
+  for (let x=cx-7.9; x<cx+8.9; x+=.25) {
+    const y0 = railY(x), y1 = railY(x+.25), L = Math.hypot(.25,y1-y0);
+    parts.push(part(L,.06,.07,IRON,x+.125,(y0+y1)/2,fz,0,0,Math.atan2(y1-y0,.25)));
+  }
+  parts.push(part(16.8,.05,.07,IRON,cx+.5,fy+.12,fz));
+  for (let x=cx-7; x<=cx+8; x+=2) {
+    parts.push(shaded(new THREE.TorusGeometry(.2,.035,6,16).translate(x,railY(x)+.26,fz), IRON));
+    parts.push(part(.14,.05,.03,'#c9b27a',x,railY(x)+.2,fz));
+    parts.push(part(.04,.12,.03,'#c9b27a',x,railY(x)+.3,fz));
+  }
+  // palms either side of the monument, leaning out
+  for (const s of [-1,1]) palm(parts, cx+.5+s*6.8, G+2, cz-1.2, s);
+  // spiky centre plant
+  for (let i=0;i<11;i++) {
+    const a = i/11*Math.PI*2, t = .45 + (i%3)*.2, V = THREE.Vector3;
+    parts.push(beam(new V(cx+.5,G+2,cz-1.5), new V(cx+.5+Math.cos(a)*t, G+2.6+(i%2)*.4, cz-1.5+Math.sin(a)*t), .12, .04, '#3f7a3c'));
+  }
+  grp.add(new THREE.Mesh(mergeGeometries(parts.map(p => p.index ? p.toNonIndexed() : p)), vcMat));
+  scene.add(grp);
+}
+
+// A box of width w and thickness h stretched from point a to point b (flat side up).
+const _bm = new THREE.Matrix4(), _bz = new THREE.Vector3(), _bx = new THREE.Vector3(), _by = new THREE.Vector3();
+function beam(a,b,w,h,color){
+  _bz.subVectors(b,a); const L = _bz.length(); _bz.divideScalar(L);
+  _bx.crossVectors(Math.abs(_bz.y) > .98 ? new THREE.Vector3(1,0,0) : new THREE.Vector3(0,1,0), _bz).normalize();
+  _by.crossVectors(_bz,_bx);
+  const g = part(w,h,L,color);
+  g.applyMatrix4(_bm.makeBasis(_bx,_by,_bz));
+  g.translate((a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);
+  return g;
+}
+function palm(parts,x,y,z,lean){
+  let px = x, py = y;
+  for (let i=0;i<7;i++) {
+    const nx = px + lean*.07*i, ny = py + .75;
+    parts.push(beam(new THREE.Vector3(px,py,z), new THREE.Vector3(nx,ny,z), .3-i*.015, .3-i*.015, i%2 ? '#8b7d66' : '#7a6d58'));
+    px = nx; py = ny;
+  }
+  for (let f=0; f<12; f++) {
+    const a = f/12*Math.PI*2, ca = Math.cos(a), sa = Math.sin(a);
+    let fx = px, fy = py, fzz = z;
+    for (let k=0;k<5;k++) {
+      const nx = fx + ca*.45, nz = fzz + sa*.45, ny = fy + .14 - k*.11;
+      parts.push(beam(new THREE.Vector3(fx,fy,fzz), new THREE.Vector3(nx,ny,nz), .36-k*.04, .035, k%2 ? '#4f8f3e' : '#5a9c46'));
+      fx = nx; fy = ny; fzz = nz;
+    }
+  }
+}
+
+// The name panel: polished pink granite slabs, gold lettering and the institute seal, lit from below.
+function gatePanel(g,W,H,glowOnly){
+  const lights = [W*.3, W*.5, W*.7];
+  if (glowOnly) {
+    g.fillStyle = '#2a1715'; g.fillRect(0,0,W,H);
+    for (const lx of lights) {
+      const r = g.createRadialGradient(lx,H,0,lx,H,H*.62);
+      r.addColorStop(0,'rgba(255,196,130,.55)'); r.addColorStop(1,'rgba(255,196,130,0)');
+      g.fillStyle = r; g.fillRect(0,0,W,H);
+    }
+    gateMarks(g,W,H,'#8a6a2c',null);
+    return;
+  }
+  const R = mulberry(1959);
+  g.fillStyle = '#9d5d58'; g.fillRect(0,0,W,H);
+  for (let i=0;i<26000;i++) {
+    const v = R();
+    g.fillStyle = v < .45 ? 'rgba(92,44,44,.5)' : v < .8 ? 'rgba(196,140,130,.45)' : 'rgba(40,24,24,.5)';
+    g.fillRect(R()*W, R()*H, 1+R()*2.5, 1+R()*2.5);
+  }
+  g.strokeStyle = 'rgba(70,34,34,.45)'; g.lineWidth = 2;
+  for (const f of [.25,.5,.75]) { g.beginPath(); g.moveTo(W*f,0); g.lineTo(W*f,H); g.stroke(); }
+  g.beginPath(); g.moveTo(0,H*.5); g.lineTo(W,H*.5); g.stroke();
+  for (const lx of lights) {
+    const r = g.createRadialGradient(lx,H,0,lx,H,H*.62);
+    r.addColorStop(0,'rgba(255,214,170,.5)'); r.addColorStop(1,'rgba(255,214,170,0)');
+    g.fillStyle = r; g.fillRect(0,0,W,H);
+  }
+  const gold = g.createLinearGradient(0,0,0,H);
+  gold.addColorStop(0,'#f3dc98'); gold.addColorStop(.5,'#d6b263'); gold.addColorStop(1,'#b89040');
+  gateMarks(g,W,H,gold,'rgba(40,18,18,.55)');
+}
+// Gold lettering and seal; drawn once on the colour layer and again, dimmer, on the glow layer.
+function gateMarks(g,W,H,gold,shade){
+  const lettering = (text,y,size) => {
+    g.font = `700 ${size}px "Arial Black", "Franklin Gothic Medium", Arial, sans-serif`;
+    let s = size; while (g.measureText(text).width > W*.84 && s > 20) { s -= 2; g.font = `700 ${s}px "Arial Black", "Franklin Gothic Medium", Arial, sans-serif`; }
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    if (shade) { g.fillStyle = shade; g.fillText(text, W/2+3, y+3); }
+    g.fillStyle = gold; g.fillText(text, W/2, y);
+  };
+  lettering('Indian Institute of Technology', H*.19, 64);
+  lettering('Madras', H*.33, 60);
+  // seal
+  const sx = W/2, sy = H*.655, r = H*.27;
+  g.strokeStyle = gold; g.fillStyle = gold;
+  if (shade) { g.shadowColor = 'rgba(40,18,18,.5)'; g.shadowOffsetX = 2; g.shadowOffsetY = 2; }
+  g.lineWidth = 7; g.beginPath(); g.arc(sx,sy,r,0,Math.PI*2); g.stroke();
+  g.lineWidth = 4; g.beginPath(); g.arc(sx,sy,r*.72,0,Math.PI*2); g.stroke();
+  const ring = 'INDIAN INSTITUTE OF TECHNOLOGY MADRAS';
+  g.font = `700 ${Math.round(r*.15)}px Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const span = Math.PI*1.3, a0 = -Math.PI/2 - span/2;
+  for (let i=0;i<ring.length;i++) {
+    const a = a0 + span*(i+.5)/ring.length;
+    g.save(); g.translate(sx+Math.cos(a)*r*.86, sy+Math.sin(a)*r*.86); g.rotate(a+Math.PI/2); g.fillText(ring[i],0,0); g.restore();
+  }
+  g.font = `600 ${Math.round(r*.14)}px "Nirmala UI", "Mangal", "Noto Sans Devanagari", sans-serif`;
+  g.fillText('सिद्धिर्भवति कर्मजा', sx, sy + r*.86);
+  // lamp: bowl on a stand, with a flame
+  g.beginPath(); g.ellipse(sx, sy+r*.12, r*.34, r*.16, 0, 0, Math.PI); g.closePath(); g.fill();
+  g.fillRect(sx-r*.36, sy+r*.08, r*.72, r*.05);
+  g.fillRect(sx-r*.05, sy+r*.26, r*.1, r*.14);
+  g.fillRect(sx-r*.22, sy+r*.38, r*.44, r*.05);
+  g.beginPath(); g.moveTo(sx, sy-r*.5);
+  g.bezierCurveTo(sx+r*.2, sy-r*.22, sx+r*.14, sy+r*.02, sx, sy+r*.04);
+  g.bezierCurveTo(sx-r*.14, sy+r*.02, sx-r*.2, sy-r*.22, sx, sy-r*.5); g.fill();
+  g.shadowColor = 'transparent';
+  g.fillStyle = shade ? '#9d5d58' : '#2a1715';
+  g.beginPath(); g.moveTo(sx, sy-r*.3);
+  g.bezierCurveTo(sx+r*.08, sy-r*.16, sx+r*.06, sy-r*.04, sx, sy-r*.02);
+  g.bezierCurveTo(sx-r*.06, sy-r*.04, sx-r*.08, sy-r*.16, sx, sy-r*.3); g.fill();
+}
+
 function researchPark(x0,z0){
   level(x0,z0,x0+22,z0+26,PAVER);
   const tower = (tx,tz,w,floors) => {
@@ -683,7 +906,7 @@ function genPlaces(){
     let [cx,cz] = P(p.at);
     let x0, z0, w, d, topY;
     const fp = { oat:[28,28], stadium:[42,28], cricket:[30,32], pool:[14,11], sac:[16,12], temple:[11,11], rp:[23,27] }[p.k] || p.s;
-    if (p.k === 'maingate') { topY = gate(cx,cz,true,3,8,BLUE); p.sign=[cx+6,cz+3]; p.front=[cx,cz-6]; }
+    if (p.k === 'maingate') { topY = mainGate(cx,cz); p.sign=[cx+19,cz-2]; p.front=[cx,cz-7]; p.park=[cx-19,cz-10]; }
     else if (p.k === 'gate') {
       const alongZ = p.at[0] > 3000;
       topY = gate(cx,cz,!alongZ,3,6,BLUE);
@@ -749,6 +972,11 @@ function tree(x,z){
   set(x,y0+h+1,z,LEAVES);
 }
 function genTrees(){
+  // keep the arrival spot in front of every place clear, so fast travel and buggy stops land in the open
+  for (const p of PLACES) if (p.front && !p.skip) {
+    const [fx,fz] = p.front;
+    for (let z=fz-6; z<=fz+6; z++) for (let x=fx-6; x<=fx+6; x++) if (inb(x,0,z) && Math.hypot(x-fx,z-fz) <= 6) noTree[z*WX+x] = 1;
+  }
   for (let i=0;i<30000;i++) {
     const x = 2+(rng()*(WX-4)|0), z = 2+(rng()*(WZ-4)|0);
     if (isRes(x,z) || noTree[z*WX+x]) continue;
@@ -1056,7 +1284,7 @@ const BUGGY_STOPS = ['Main Gate','Gajendra Circle','Central Library','Humanities
 function spawnBuggies(){
   for (const n of BUGGY_STOPS) {
     const p = placeList.find(q => q.n === n); if (!p) continue;
-    const [fx,fz] = p.front;
+    const [fx,fz] = p.park || p.front;
     let spot = null;
     for (let r=2; r<=24 && !spot; r++) for (let i=0;i<24 && !spot;i++) {
       const a = i/24*Math.PI*2, x = Math.round(fx+Math.cos(a)*r), z = Math.round(fz+Math.sin(a)*r);
@@ -1102,7 +1330,7 @@ function cycleSpot(x,z){
 function spawnCycles(){
   const stops = placeList.filter(p => /Hostel|Block|Library|Mess|Complex|Engineering|Lecture|Centre$|Sports|Gate/.test(p.n));
   for (const p of stops) {
-    const [fx,fz] = p.front; let placed = 0;
+    const [fx,fz] = p.park || p.front; let placed = 0;
     for (let r=1; r<=14 && placed<2; r++) for (let i=0;i<20 && placed<2;i++) {
       const a = i/20*Math.PI*2, x = Math.round(fx+Math.cos(a)*r), z = Math.round(fz+Math.sin(a)*r);
       if (!cycleSpot(x,z) || !cycleSpot(x+1,z) || buggies.some(b => Math.hypot(b.x-x,b.z-z) < (b.kind === 'cycle' ? 1.5 : 3.5))) continue;
@@ -1315,7 +1543,17 @@ function updatePlayer(dt){
 }
 function teleport(x,z,face){
   if (driving) exitBuggy(true);
-  let y = WH-2; while (y > 0 && (!get(Math.floor(x),y,Math.floor(z)) || get(Math.floor(x),y,Math.floor(z)) === LEAVES)) y--;
+  const standAt = (x,z) => {
+    let y = WH-2; while (y > 0 && (!get(Math.floor(x),y,Math.floor(z)) || get(Math.floor(x),y,Math.floor(z)) === LEAVES)) y--;
+    return { x, y:y+1, z };
+  };
+  // Land on the ground at (x,z), or at the nearest spot nearby where the student fits (not inside a tree or wall).
+  let spot = standAt(x,z);
+  for (let r=1; r<=6 && collides(spot); r++) for (let i=0; i<r*8; i++) {
+    const a = i/(r*8)*Math.PI*2, s = standAt(x+Math.cos(a)*r, z+Math.sin(a)*r);
+    if (!collides(s)) { spot = s; break; }
+  }
+  x = spot.x; z = spot.z; const y = spot.y-1;
   player.pos.set(x, y+1, z); player.vel.set(0,0,0);
   if (face !== undefined) { yaw = face; pitch = -.22; if (student) student.facing = face + Math.PI; }
   camera.position.set(x, y+3, z); cullChunks();

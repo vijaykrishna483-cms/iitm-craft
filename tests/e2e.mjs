@@ -98,6 +98,9 @@ try {
   check('Main Gate discovered on arrival', await A.evaluate(() => iitm.places().find(p => p.n === 'Main Gate').found));
 
   // jump
+  // jump on open road, standing still
+  await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Main Gate'); iitm.teleport(q.front[0] + .5, q.front[1] + .5, Math.PI); });
+  await until(() => A.evaluate(() => iitm.player.onGround), 3000, 50);
   const y0 = (await pos(A)).y;
   await A.keyboard.down('Space');
   const y1 = await until(async () => { const y = (await pos(A)).y; return y > y0 + .3 ? y : 0; }, 3000, 30) || y0;
@@ -131,11 +134,13 @@ try {
   await A.mouse.click(lib.x, lib.y); await sleep(500);
   if (await A.evaluate(() => iitm.stateNow()) !== 'play') await A.evaluate(() => iitm.setState('play'));
   const mg = await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Main Gate'); return Math.hypot(iitm.player.pos.x - q.front[0], iitm.player.pos.z - q.front[1]); });
+  check('Travel never lands inside a tree or wall', await A.evaluate(() => iitm.places().every(q => { iitm.teleport(q.front[0] + 2.5, q.front[1] + .5); return !iitm.stuckNow(); })));
+  await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Main Gate'); iitm.teleport(q.front[0] + .5, q.front[1] + .5, Math.PI); });
   check('Clicking a discovered place travels there', mg < 3 && !(await A.isVisible('#mapview')), `${mg.toFixed(1)} blocks away`);
 
   // e-buggy
   const bg = await A.evaluate(() => {
-    const b = iitm.buggies.find(v => v.kind === 'buggy');
+    const b = iitm.buggies.find(v => v.kind === 'buggy' && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 6));
     const lx = Math.cos(b.heading), lz = -Math.sin(b.heading);
     iitm.teleport(b.x + lx * 2.2, b.z + lz * 2.2); iitm.updatePrompt();
     return { vid: b.vid, text: iitm.focusNow() };
@@ -240,20 +245,30 @@ try {
   check('B sees Asha', await until(() => B.evaluate(() => [...iitm.net.peers.values()].some(p => p.name === 'Asha' && p.kind === 'girl'))));
 
   // position sync
-  await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Open Air Theatre'); iitm.teleport(q.front[0] + .5, q.front[1] + .5, 0); });
-  await B.evaluate(() => { const q = iitm.places().find(p => p.n === 'Open Air Theatre'); iitm.teleport(q.front[0] + 2.5, q.front[1] + .5, 0); });
+  // meet in front of a place with no vehicles parked nearby, so the E prompt is about the other player
+  const meet = await A.evaluate(() => iitm.places().find(q => !q.skip && q.front && !iitm.buggies.some(v => Math.hypot(v.x - q.front[0], v.z - q.front[1]) < 9)).n);
+  await A.evaluate(n => { const q = iitm.places().find(p => p.n === n); iitm.teleport(q.front[0] + .5, q.front[1] + .5, 0); }, meet);
+  await B.evaluate(n => { const q = iitm.places().find(p => p.n === n); iitm.teleport(q.front[0] + 2.5, q.front[1] + .5, 0); }, meet);
   const synced = await until(() => A.evaluate(() => { const p = [...iitm.net.peers.values()][0]; return p && Math.hypot(p.x - iitm.player.pos.x, p.z - iitm.player.pos.z) < 4; }), 5000);
   check("Players see each other's live position", synced);
-  const bx0 = await A.evaluate(() => [...iitm.net.peers.values()][0].x);
-  await B.evaluate(() => iitm.look(-Math.PI / 2, -.2));
-  await hold(B, 'KeyW', 800);
-  check("Movement streams to other players", await until(() => A.evaluate(x => Math.abs([...iitm.net.peers.values()][0].x - x) > 1, bx0), 3000));
+  const b0 = await A.evaluate(() => { const p = [...iitm.net.peers.values()][0]; return { x: p.tx, z: p.tz }; });
+  for (const yaw of [-Math.PI / 2, 0, Math.PI, Math.PI / 2]) {
+    await B.evaluate(y => iitm.look(y, -.2), yaw);
+    await hold(B, 'KeyW', 900);
+    const bp = await pos(B);
+    if (Math.hypot(bp.x - b0.x, bp.z - b0.z) > 1.5) break;
+  }
+  const streamed = await until(() => A.evaluate(b => { const p = [...iitm.net.peers.values()][0]; return Math.hypot(p.x - b.x, p.z - b.z) > 1; }, b0), 3000);
+  const bNow = await pos(B), aSees = await A.evaluate(() => { const p = [...iitm.net.peers.values()][0]; return { x: p.x, z: p.z }; });
+  check("Movement streams to other players", streamed, `start ${b0.x.toFixed(1)},${b0.z.toFixed(1)} · Ravi at ${bNow.x.toFixed(1)},${bNow.z.toFixed(1)} · Asha sees ${aSees.x.toFixed(1)},${aSees.z.toFixed(1)}`);
   await B.evaluate(() => { const a = iitm.player.pos; });
-  await B.evaluate(() => { const q = iitm.places().find(p => p.n === 'Open Air Theatre'); iitm.teleport(q.front[0] + 2.5, q.front[1] + .5, 0); });
+  await B.evaluate(n => { const q = iitm.places().find(p => p.n === n); iitm.teleport(q.front[0] + 2.5, q.front[1] + .5, 0); }, meet);
   await sleep(800);
 
   // chat: decline
-  check('Nearby player gets a chat prompt', await until(() => B.evaluate(() => { iitm.updatePrompt(); return iitm.focusNow() === 'Chat with Asha'; }), 3000));
+  const gotPrompt = await until(() => B.evaluate(() => { iitm.updatePrompt(); return iitm.focusNow() === 'Chat with Asha'; }), 3000);
+  const promptInfo = await B.evaluate(() => { const p = [...iitm.net.peers.values()][0]; return `prompt "${iitm.focusNow()}", Asha ${Math.hypot(p.x - iitm.player.pos.x, p.z - iitm.player.pos.z).toFixed(1)} blocks away, dy ${(p.y - iitm.player.pos.y).toFixed(1)}`; });
+  check('Nearby player gets a chat prompt', gotPrompt, promptInfo);
   await B.keyboard.press('KeyE');
   check('Chat request reaches the other player', await until(() => A.isVisible('#chatreq'), 3000));
   check('Request card names the sender', (await A.textContent('#reqName')) === 'Ravi');
