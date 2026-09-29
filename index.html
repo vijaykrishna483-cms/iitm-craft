@@ -219,6 +219,10 @@
   .btn:disabled{opacity:.5;cursor:default}
   .foot{margin-top:18px;font:400 11.5px/1.5 var(--sans);color:rgba(180,195,191,.7)}
   .dev{color:inherit;opacity:.7;vertical-align:-1px;margin-left:4px}
+  .bmc{color:var(--gold);text-decoration:none;font-weight:600;margin-left:8px;white-space:nowrap}
+  .bmc svg{vertical-align:-2px}
+  .bmc:hover{text-decoration:underline}
+  .bmc.pause{display:inline-block;margin:10px 0 0;font:600 13px var(--sans)}
   .dev:hover{opacity:1}
   /* loading: a campus-plan grid, blocks being laid, a segmented progress track */
   #loading{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:
@@ -334,7 +338,7 @@
       <kbd>Esc</kbd><span>Pause</span><kbd>Space</kbd><span>Jump</span>
     </div>
     <button class="btn" id="bStart">Start exploring</button>
-    <div class="foot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras. <a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></div>
+    <div class="foot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras. <a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a> <a class="bmc" href="https://buymeacoffee.com/vijaykrishnaa" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 2v3M12 2v3"/></svg> Support</a></div>
   </div>
 </div>
 
@@ -354,6 +358,7 @@
     </div>
     <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
     <button class="linkish" id="bUnstuck">Stuck? Go back to the Main Gate</button>
+    <a class="bmc pause" href="https://buymeacoffee.com/vijaykrishnaa" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 2v3M12 2v3"/></svg> Buy me a coffee</a>
   </div>
 </div>
 
