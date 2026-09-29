@@ -1,0 +1,16 @@
+# Render Blueprint: one web service serves the game page and the multiplayer WebSocket server.
+services:
+  - type: web
+    name: iitm-craft
+    runtime: node
+    plan: free                 # switch to "starter" to stay awake 24/7
+    region: singapore          # closest Render region to Chennai
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true           # redeploys on every push to main
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MAX_PLAYERS
+        value: "150"
