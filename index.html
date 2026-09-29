@@ -2729,7 +2729,7 @@ function initTouch(){
   $('bPause').onclick = pauseGame;
 
   // keep labels in step with what the buttons will do
-  const USE = { exit:'Get out', drive:'Drive', ride:'Get in', chat:'Chat', deer:'Say hi', monkey:'Wave', croc:'Look', kick:'Kick', bat:'Bat', seat:'Sit', board:'Events', swim:'Race', fish:'Fish', stand:'Stand', swing:'Swing', reel:'Reel' };
+  const USE = { exit:'Get out', drive:'Drive', ride:'Get in', chat:'Chat', deer:'Say hi', monkey:'Wave', croc:'Look', dance:'Dance', kick:'Kick', bat:'Bat', seat:'Sit', board:'Events', swim:'Race', fish:'Fish', stand:'Stand', swing:'Swing', reel:'Reel' };
   let lastSig = '';
   touchLabels = () => {
     if (!running && keys.has('ShiftLeft') && !sinking) keys.delete('ShiftLeft');
@@ -2801,15 +2801,15 @@ function showProfileCard(p){
 }
 
 // ---------- emotes ----------
-function doEmote(e){
+function doEmote(e, loop){
   if (state !== 'play' || driving || riding || act.seated || act.batting) return;
-  act.emote = { e, t0: performance.now() };
+  act.emote = { e, t0: performance.now(), loop: !!loop };
   nsend({ t:'emote', e });
 }
 // returns true when the emote drove the pose this frame
 function emotePose(s, em, dt){
   if (!em) return false;
-  const t = (performance.now() - em.t0)/1000, dur = em.e === 'dance' ? 6 : em.e === 'sit' ? 1e9 : 3;
+  const t = (performance.now() - em.t0)/1000, dur = em.loop ? 1e9 : em.e === 'dance' ? 6 : em.e === 'sit' ? 1e9 : 3;
   if (t > dur) return false;
   const [la, ra] = s.arms, [ll, rl] = s.legs;
   la.rotation.set(0,0,0); ra.rotation.set(0,0,0); ll.rotation.set(0,0,0); rl.rotation.set(0,0,0); s.head.rotation.set(0,0,0);
@@ -2820,7 +2820,7 @@ function emotePose(s, em, dt){
   else if (em.e === 'sit') { ll.rotation.x = rl.rotation.x = -1.45; la.rotation.x = ra.rotation.x = -.4; }
   return true;
 }
-function emoteDone(em){ return !em || (performance.now() - em.t0) > (em.e === 'dance' ? 6000 : em.e === 'sit' ? 1e12 : 3000); }
+function emoteDone(em){ return !em || (!em.loop && (performance.now() - em.t0) > (em.e === 'dance' ? 6000 : em.e === 'sit' ? 1e12 : 3000)); }
 
 // ---------- café patios ----------
 const cafes = [];
@@ -3281,6 +3281,7 @@ function activityFocus(consider){
   if (fpitch) { const bx = fpitch.x0 + fbLocal.x, bz = fpitch.z0 + fbLocal.z; consider('kick', { x:bx, z:bz, y:G+1 }, 1.7, 'Kick the ball', -2); }
   if (nets && !act.batting) consider('bat', { x:nets.bx, z:nets.bz, y:G+1 }, 2.4, 'Face an over (box cricket)', -1);
   const seat = freeSeatNear(px, pz); if (seat) consider('seat', { x:seat.s.x, z:seat.s.z, y:G+1, pick:seat }, 1.4, 'Sit at the table', -1);
+  if (oatRig && !(act.emote && act.emote.loop) && Math.hypot(px - oatRig.cx, pz - (oatRig.cz - 4)) < 11) consider('dance', { x:px, z:pz, y:player.pos.y }, .5, 'Dance', 1.2);
   if (boardAt) consider('board', { x:boardAt.x, z:boardAt.z, y:G+1 }, 3, "See what's on", .6);
   if (poolR && !act.swim && race.state !== 'go') consider('swim', { x:poolR.x0 - .5, z:(poolR.z0+poolR.z1)/2, y:G+1 }, 5, race.state === 'lobby' ? `Join the swim race (${race.lanes.length} in)` : 'Start a swim race', -.5);
   if (!act.fishing && !player.fly && get(Math.floor(px), Math.floor(player.pos.y+.4), Math.floor(pz)) !== WATER) { const t = lakeTileNear(px, pz); if (t) consider('fish', { x:px, z:pz, y:player.pos.y, tile:t }, .5, 'Fish here', 1.5); }
@@ -3295,6 +3296,7 @@ function activityUse(f){
   if (f.type === 'bat') { startBatting(); return true; }
   if (f.type === 'seat') { sitDown(f.o.pick); return true; }
   if (f.type === 'board') { openEvents(); return true; }
+  if (f.type === 'dance') { doEmote('dance', true); nsend({ t:'emote', e:'dance' }); return true; }
   if (f.type === 'swim') { joinRace(); return true; }
   if (f.type === 'fish') { startFishing(f.o.tile); return true; }
   return false;
