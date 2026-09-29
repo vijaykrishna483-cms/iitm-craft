@@ -27,6 +27,52 @@ const send = (p, msg) => { if (p.ws.readyState === 1) p.ws.send(JSON.stringify(m
 const broadcast = (msg, except) => { const s = JSON.stringify(msg); for (const p of players.values()) if (p !== except && p.ws.readyState === 1) p.ws.send(s); };
 const pub = p => ({ id: p.id, name: p.name, kind: p.kind, x: p.x, y: p.y, z: p.z, f: p.f, a: p.a, v: p.v, vh: p.vh });
 
+// ---------- Feature suggestions ----------
+// Forwarded to a Google Form, whose responses collect in a Google Sheet. Set on the host:
+//   FEEDBACK_FORM_ID      the id in https://docs.google.com/forms/d/e/<id>/viewform
+//   FEEDBACK_TITLE_ENTRY  e.g. entry.123456789 (the "Title" question)
+//   FEEDBACK_DESC_ENTRY   e.g. entry.987654321 (the "Description" question)
+const FORM = {
+  id: process.env.FEEDBACK_FORM_ID,
+  title: process.env.FEEDBACK_TITLE_ENTRY,
+  desc: process.env.FEEDBACK_DESC_ENTRY,
+};
+const feedbackLog = new Map();  // ip -> recent submission times
+const FEEDBACK_PER_HOUR = 5;
+const json = (res, code, body) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(body)); };
+
+async function handleFeedback(req, res){
+  if (req.method !== 'POST') return json(res, 405, { error: 'Use POST' });
+  if (!FORM.id || !FORM.title || !FORM.desc) return json(res, 503, { error: 'not_configured' });
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  const now = Date.now(), recent = (feedbackLog.get(ip) || []).filter(t => now - t < 3600e3);
+  if (recent.length >= FEEDBACK_PER_HOUR) return json(res, 429, { error: 'too_many' });
+
+  let raw = '';
+  for await (const chunk of req) { raw += chunk; if (raw.length > 4096) return json(res, 413, { error: 'too_long' }); }
+  let body; try { body = JSON.parse(raw); } catch { return json(res, 400, { error: 'bad_json' }); }
+  // Keep line breaks in the description; drop other control characters.
+  const title = clean(body.title, 80);
+  const desc = String(body.desc ?? '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, 1000);
+  if (title.length < 3) return json(res, 400, { error: 'title_required' });
+
+  try {
+    const r = await fetch(`https://docs.google.com/forms/d/e/${encodeURIComponent(FORM.id)}/formResponse`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ [FORM.title]: title, [FORM.desc]: desc }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) throw new Error(`Google Forms answered ${r.status}`);
+  } catch (e) {
+    console.error('Feedback forward failed:', e.message);
+    return json(res, 502, { error: 'forward_failed' });
+  }
+  recent.push(now); feedbackLog.set(ip, recent);
+  console.log(`Feedback received: "${title}"`);
+  json(res, 200, { ok: true });
+}
+
 // ---------- HTTP ----------
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost');
@@ -39,6 +85,8 @@ const server = http.createServer(async (req, res) => {
   } else if (pathname === '/api/online') {
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
     res.end(JSON.stringify({ online: players.size }));
+  } else if (pathname === '/api/feedback') {
+    await handleFeedback(req, res);
   } else if (pathname === '/health') {
     res.writeHead(200); res.end('ok');
   } else {

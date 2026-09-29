@@ -39,7 +39,8 @@ async function openGame(tag) {
   const page = await browser.newPage({ viewport: VIEW });
   page.errors = [];
   page.on('pageerror', e => page.errors.push(`${tag}: ${e.message}`));
-  page.on('console', m => { if (m.type() === 'error') page.errors.push(`${tag}: ${m.text()}`); });
+  // the 503 from /api/feedback is the expected 'not set up' answer on the test server
+  page.on('console', m => { if (m.type() === 'error' && !/status of 503/.test(m.text())) page.errors.push(`${tag}: ${m.text()}`); });
   const t0 = Date.now();
   await page.goto(`${BASE}/?debug`);
   await page.waitForSelector('#start:not(.hidden)', { timeout: 180000 });
@@ -95,7 +96,7 @@ try {
   await hold(A, 'KeyW', 1500);
   let p1 = await pos(A);
   check('W walks forward', Math.hypot(p1.x - p0.x, p1.z - p0.z) > 2, `${Math.hypot(p1.x - p0.x, p1.z - p0.z).toFixed(1)} blocks`);
-  check('Main Gate discovered on arrival', await A.evaluate(() => iitm.places().find(p => p.n === 'Main Gate').found));
+  check('New students start at Gajendra Circle', await A.evaluate(() => iitm.places().find(p => p.n === 'Gajendra Circle').found));
 
   // jump
   // jump on open road, standing still
@@ -231,6 +232,24 @@ try {
   const d0 = await A.evaluate(() => iitm.dayNow());
   await A.keyboard.press('KeyT');
   check('T switches between day and night', Math.abs(await A.evaluate(() => iitm.dayNow()) - d0) > .3);
+  // pause hint and feature suggestions (the test server has no Google Form configured)
+  check('Esc pause hint is shown while playing', await A.isVisible('#escHint'));
+  await A.evaluate(() => { document.exitPointerLock?.(); });
+  await A.evaluate(() => iitm.setState('paused'));
+  await A.evaluate(() => { document.getElementById('pause').classList.remove('hidden'); });
+  await A.click('#bSuggest');
+  check('Pause screen opens the suggestion form', await A.isVisible('#feedback') && await until(() => A.evaluate(() => document.activeElement.id === 'fbTitle'), 2000));
+  await A.keyboard.type('m');
+  check('Typing in the form does not trigger game keys', !(await A.isVisible('#mapview')));
+  await A.fill('#fbTitle', ''); await A.click('#bFbSend');
+  check('A title is required', /title/i.test(await A.textContent('#fbStatus')));
+  await A.fill('#fbTitle', 'Campus buses'); await A.fill('#fbDesc', 'Buses on fixed routes between hostels and the academic zone.');
+  check('Description shows a character count', (await A.textContent('#fbCount')) === '60');
+  await A.click('#bFbSend');
+  check('Unconfigured server gives a clear message', await until(async () => /switched on/.test(await A.textContent('#fbStatus')), 3000), await A.textContent('#fbStatus'));
+  await A.keyboard.press('Escape');
+  check('Esc closes the form back to the pause screen', !(await A.isVisible('#feedback')) && await A.isVisible('#pause'));
+  await A.evaluate(() => { iitm.setState('play'); document.getElementById('pause').classList.add('hidden'); });
   check('No runtime errors in single player', A.errors.length === 0, A.errors.slice(0, 3).join(' | '));
 
   // ============================================================
@@ -347,6 +366,8 @@ try {
   const online = await (await fetch(`${BASE}/api/online`)).json();
   await sleep(300);
   check('Health endpoint responds', (await fetch(`${BASE}/health`)).ok);
+  check('Feedback endpoint only accepts POST', (await fetch(`${BASE}/api/feedback`)).status === 405);
+  check('Feedback reports when no form is configured', (await fetch(`${BASE}/api/feedback`, { method: 'POST', body: '{"title":"Test idea"}' })).status === 503);
   check('Unknown paths return 404', (await fetch(`${BASE}/server/server.js`)).status === 404);
   check('Online API reports players', typeof online.online === 'number');
 } catch (e) {

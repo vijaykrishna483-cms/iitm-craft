@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>IITM Craft</title>
+<meta name="description" content="Roam the IIT Madras campus, meet new people and make new friends.">
+<meta property="og:title" content="IITM Craft">
+<meta property="og:description" content="Roam the IIT Madras campus, meet new people and make new friends.">
+<meta name="theme-color" content="#10353a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect width=%2716%27 height=%2716%27 rx=%273%27 fill=%27%2310353a%27/%3E%3Crect x=%274%27 y=%274%27 width=%278%27 height=%278%27 fill=%27%23e8c170%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,6 +42,13 @@
   #place .eyebrow{margin-bottom:6px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
   #place .name{font:600 30px/1.1 var(--serif);text-shadow:0 2px 14px rgba(0,0,0,.45);transition:opacity .3s}
   #mode{position:absolute;right:20px;bottom:22px}
+  label.field-label{display:block}
+  #escHint{position:absolute;right:20px;bottom:64px;font:500 12px var(--sans);color:var(--cream);text-shadow:0 1px 6px rgba(0,0,0,.7)}
+  .text.area{min-height:120px;resize:vertical;font:400 14px/1.5 var(--sans);margin-bottom:6px;display:block}
+  .count{font:500 11px var(--sans);color:var(--muted);text-align:right;margin:0 0 16px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  #fbStatus{font:500 13px var(--sans);color:var(--muted);min-height:18px;margin-top:12px}
+  #fbStatus.err{color:#f0a08a}
   #prompt{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(15,50,54,.94);border:1px solid var(--line);border-radius:999px;padding:8px 18px 8px 9px;font:600 14px var(--sans);box-shadow:0 8px 24px rgba(0,0,0,.2)}
   #prompt kbd{background:var(--gold);color:#1c2a22;border-color:var(--gold-deep);font-size:12px;padding:3px 8px}
   .field-label{font:600 12px var(--sans);color:var(--muted);margin:0 0 8px}
@@ -124,12 +135,14 @@
   <div id="tools">
     <div class="icon" id="bMap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg><span>Map · M</span></div>
     <div class="icon" id="bTime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Time · T</span></div>
+    <div class="icon" id="bFeedback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z"/></svg><span>Suggest a feature</span></div>
     <div class="icon" id="bHelp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg><span>Controls</span></div>
   </div>
   <div id="clock"></div>
   <div id="toasts"></div>
-  <div id="place"><div class="eyebrow" id="pZone">Sardar Patel Road</div><div class="name" id="pName">Outside the Main Gate</div></div>
+  <div id="place"><div class="eyebrow" id="pZone">IIT Madras</div><div class="name" id="pName">Gajendra Circle</div></div>
   <div id="mode" class="pill">Walking</div>
+  <div id="escHint"><kbd>Esc</kbd> Pause &middot; suggest a feature</div>
   <div id="hint">Press <kbd>M</kbd> for the campus map</div>
   <div id="chatreq" class="hidden">
     <div class="eyebrow">Chat request</div>
@@ -149,7 +162,7 @@
   <div class="card">
     <div class="eyebrow">IIT Madras · Chennai</div>
     <h1>IITM Craft</h1>
-    <p>Walk the campus from the Main Gate to the hostels. Find every place, meet the deer and build whatever you like.</p>
+    <p>Roam around the campus, meet new people, strike up a conversation and make new friends. Hop on an e-buggy, say hi to the deer and discover every corner of IIT Madras.</p>
     <div class="field-label">Your name</div>
     <input id="nameInput" class="text" maxlength="16" placeholder="What should others call you?" autocomplete="off">
     <div class="field-label">Choose your student</div>
@@ -160,9 +173,10 @@
     <div class="keys">
       <kbd>WASD</kbd><span>Walk / drive</span><kbd>Mouse</kbd><span>Look around</span>
       <kbd>E</kbd><span>Drive / interact</span><kbd>M</kbd><span>Campus map</span>
+      <kbd>Esc</kbd><span>Pause</span><kbd>Space</kbd><span>Jump</span>
     </div>
     <button class="btn" id="bStart">Start exploring</button><span id="liveCount"></span>
-    <div class="foot">Fan-made and not affiliated with IIT Madras. Layout based on the published campus map.</div>
+    <div class="foot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras.</div>
   </div>
 </div>
 
@@ -176,8 +190,24 @@
       <kbd>E</kbd><span>Drive / ride / chat</span><kbd>H</kbd><span>Horn / bell</span>
       <kbd>F</kbd><span>Fly</span><kbd>Scroll</kbd><span>Zoom</span>
       <kbd>M</kbd><span>Campus map</span><kbd>T</kbd><span>Day / night</span>
+      <kbd>Esc</kbd><span>Pause</span><kbd>Enter</kbd><span>Type in chat</span>
     </div>
-    <button class="btn" id="bResume">Resume</button>
+    <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
+  </div>
+</div>
+
+<div id="feedback" class="screen hidden">
+  <div class="card">
+    <div class="eyebrow">Suggest a feature</div>
+    <h2>What should we add?</h2>
+    <p>Share one idea at a time. Every suggestion is read.</p>
+    <label class="field-label" for="fbTitle">Title</label>
+    <input id="fbTitle" class="text" maxlength="80" placeholder="e.g. Campus buses on fixed routes" autocomplete="off">
+    <label class="field-label" for="fbDesc">Description</label>
+    <textarea id="fbDesc" class="text area" maxlength="1000" placeholder="What would it do, and how would it make the game better?"></textarea>
+    <div class="count"><span id="fbCount">0</span>/1000</div>
+    <div class="row"><button class="btn" id="bFbSend">Send suggestion</button><button class="ghost" id="bFbCancel">Back</button></div>
+    <div id="fbStatus" role="status"></div>
   </div>
 </div>
 
@@ -1532,7 +1562,7 @@ function updatePlayer(dt){
   }
   // Standing = something solid right under the feet (checked after all substeps).
   player.onGround = !player.fly && v.y <= 0 && collides({ x:p.x, y:p.y-.06, z:p.z });
-  if (p.y < -10) teleport(SPAWN[0], SPAWN[2], Math.PI);
+  if (p.y < -10) respawn();
   const hs = Math.hypot(v.x,v.z);
   if (student) {
     if (hs > .4) { let dr = Math.atan2(v.x,v.z) - student.facing; dr = Math.atan2(Math.sin(dr),Math.cos(dr)); student.facing += dr*Math.min(1,dt*12); }
@@ -2030,10 +2060,16 @@ function openMap(){
   state = 'map'; sizeMap(); drawMap(); show('mapview', true); show('pause', false);
   if (document.pointerLockElement) document.exitPointerLock();
 }
+// New students start on the lawn road at Gajendra Circle, facing the statue.
+function respawn(){
+  const q = placeList.find(p => p.n === 'Gajendra Circle');
+  if (q) teleport(q.front[0]+.5, q.front[1]+.5, q.front[1] > q.cz ? 0 : Math.PI);
+  else teleport(SPAWN[0], SPAWN[2], Math.PI);
+}
 function closeMap(relock){ show('mapview', false); state = 'paused'; if (relock) lock(); else show('pause', true); }
 function begin(kind, name){
   if (!student) { student = makeStudent(kind); scene.add(student.g); }
-  teleport(SPAWN[0], SPAWN[2], Math.PI);
+  respawn();
   net.kind = kind; net.name = name || 'Student';
   connect();
 }
@@ -2051,6 +2087,38 @@ document.querySelectorAll('.who').forEach(b => b.onclick = () => {
 });
 $('bStart').onclick = () => { if (state !== 'title') return; begin(chosen, playerName()); lock(); };
 $('bResume').onclick = lock;
+function openFeedback(){
+  if (document.pointerLockElement) document.exitPointerLock();
+  state = 'feedback'; show('pause', false); show('mapview', false); show('feedback', true);
+  $('fbStatus').textContent = ''; $('fbStatus').className = '';
+  setTimeout(() => $('fbTitle').focus(), 50);
+}
+function closeFeedback(){ show('feedback', false); state = 'paused'; show('pause', true); }
+async function sendFeedback(){
+  const title = $('fbTitle').value.trim(), desc = $('fbDesc').value.trim();
+  const status = (msg, err) => { $('fbStatus').textContent = msg; $('fbStatus').className = err ? 'err' : ''; };
+  if (title.length < 3) return status('Give your idea a short title first.', true);
+  if (!location.protocol.startsWith('http')) return status('Suggestions work in the online version of the game.', true);
+  $('bFbSend').disabled = true; status('Sending…');
+  try {
+    const r = await fetch('/api/feedback', { method:'POST', headers:{ 'content-type':'application/json' }, body: JSON.stringify({ title, desc }) });
+    if (r.ok) {
+      $('fbTitle').value = ''; $('fbDesc').value = ''; $('fbCount').textContent = '0';
+      closeFeedback(); toast('Suggestions', 'Thanks for the idea!', `"${title}" was sent.`);
+      return;
+    }
+    const err = (await r.json().catch(() => ({}))).error;
+    status(err === 'too_many' ? "You've sent 5 ideas this hour. Please try again later."
+      : err === 'not_configured' ? "Suggestions aren't switched on yet. Please try again soon."
+      : "Couldn't send it. Check your connection and try again.", true);
+  } catch { status("Couldn't send it. Check your connection and try again.", true); }
+  finally { $('bFbSend').disabled = false; }
+}
+$('bSuggest').onclick = openFeedback;
+$('bFeedback').onclick = openFeedback;
+$('bFbCancel').onclick = closeFeedback;
+$('bFbSend').onclick = sendFeedback;
+$('fbDesc').addEventListener('input', e => { $('fbCount').textContent = e.target.value.length; });
 $('bMapClose').onclick = () => closeMap(true);
 $('bMap').onclick = openMap;
 $('bTime').onclick = () => { dayT = (dayT < .5 ? .5 : 0) + .02; };
@@ -2076,6 +2144,7 @@ document.addEventListener('mousedown', e => { if (state === 'play' && e.button =
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('wheel', e => { if (state === 'play') camDist = Math.max(2.5, Math.min(10, camDist + Math.sign(e.deltaY)*.7)); }, { passive:true });
 document.addEventListener('keydown', e => {
+  if (state === 'feedback') { if (e.code === 'Escape') closeFeedback(); return; }
   if (document.activeElement && ['nameInput','chatInput'].includes(document.activeElement.id)) return;
   if (state === 'play' && net.pendingReq && (e.code === 'KeyY' || e.code === 'KeyN')) { respondChat(e.code === 'KeyY'); return; }
   if (state === 'play' && net.chatWith && e.code === 'Enter') { e.preventDefault(); keys.clear(); $('chatInput').focus(); return; }
