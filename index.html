@@ -43,6 +43,12 @@
   #place .name{font:600 30px/1.1 var(--serif);text-shadow:0 2px 14px rgba(0,0,0,.45);transition:opacity .3s}
   #mode{position:absolute;right:20px;bottom:22px}
   label.field-label{display:block}
+  /* phones: 16px fields stop iOS from zooming in on focus; the page itself never scrolls, only the card */
+  html,body{overscroll-behavior:none}
+  body{position:fixed;inset:0}
+  .screen{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  body.touch input,body.touch select,body.touch textarea{font-size:16px!important}
+  @media (max-width:560px){ .prof .profgrid{grid-template-columns:1fr} .prof .profgrid label{flex-direction:row;align-items:center;justify-content:space-between;gap:10px} .prof .profgrid select{flex:1;max-width:62%} }
   .prof{margin:0 0 16px;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
   .prof summary{cursor:pointer;font:600 13px var(--sans);color:var(--cream)}
   .prof summary span{font-weight:400;color:var(--muted);margin-left:6px}
@@ -51,6 +57,7 @@
   .profgrid select{background:rgba(0,0,0,.25);color:var(--cream);border:1px solid var(--line);border-radius:8px;padding:7px 6px;font:500 13px var(--sans);min-width:0}
   .tags{display:flex;flex-wrap:wrap;gap:6px}
   .tag{background:transparent;color:var(--cream);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font:500 12px var(--sans);cursor:pointer}
+  .codes .tag{min-width:44px;padding:5px 8px;font-weight:600}
   .tag.on{background:var(--gold);color:#1c2a22;border-color:var(--gold)}
   #pcard{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);background:rgba(15,50,54,.95);border:1px solid var(--line);border-radius:12px;padding:8px 14px;display:flex;flex-direction:column;align-items:center;gap:3px;max-width:86vw}
   #pcard[hidden]{display:none}
@@ -69,7 +76,8 @@
   #tEmote{position:absolute;left:max(26px,env(safe-area-inset-left));bottom:calc(max(26px,env(safe-area-inset-bottom)) + 146px);width:52px;height:52px;font-size:22px;pointer-events:auto}
   #emoPick{position:absolute;left:max(86px,calc(env(safe-area-inset-left) + 86px));bottom:calc(max(26px,env(safe-area-inset-bottom)) + 146px);display:flex;gap:8px;pointer-events:auto}
   #emoPick[hidden]{display:none}
-  #emoPick button{width:48px;height:48px;border-radius:50%;background:rgba(15,50,54,.9);border:1.5px solid rgba(243,234,216,.32);font-size:22px}
+  #emoPick button{width:48px;height:48px;border-radius:50%;background:rgba(15,50,54,.9);border:1.5px solid rgba(243,234,216,.32);color:var(--cream);display:grid;place-items:center;padding:0}
+  #tEmote{color:var(--cream)}
   .linkish{margin-top:14px;background:none;border:0;padding:4px 0;color:var(--muted);font:500 13px var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   .linkish:hover{color:var(--cream)}
   /* nearby group chat */
@@ -283,14 +291,14 @@
     <div class="chathint"><kbd>Enter</kbd> type &middot; <kbd>X</kbd> end chat</div>
   </div>
   <div id="pcard" hidden><b id="pcName"></b><span id="pcLine"></span><div id="pcTags"></div></div>
-  <div id="reel" hidden><div class="rtrack"><i id="reelZone"></i><b id="reelMark"></b></div><span>Press E when the marker is in the green</span></div>
+  <div id="reel" hidden><div class="rtrack"><i id="reelZone"></i><b id="reelMark"></b></div><span><span class="desk">Press E</span><span class="touch-word">Tap Reel</span> when the marker is in the green</span></div>
   <div id="raceHud" hidden></div>
   <div id="prompt" class="hidden"><kbd>E</kbd><span id="promptText"></span><span id="promptAlt" class="palt" hidden><kbd>R</kbd><span id="promptAltText"></span></span></div>
 </div>
 
 <div id="touch">
   <div id="stick"><div id="knob"></div></div>
-  <button class="tb emo" id="tEmote" aria-label="Emotes">😊</button>
+  <button class="tb emo" id="tEmote" aria-label="Emotes"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8M9 9.5h.01M15 9.5h.01"/></svg></button>
   <div id="emoPick" hidden></div>
   <div class="tbtns">
     <button class="tb" id="tFly">Fly</button>
@@ -309,7 +317,8 @@
     <div class="field-label">Your name</div>
     <input id="nameInput" class="text" maxlength="16" placeholder="What should others call you?" autocomplete="off">
     <details class="prof"><summary>About you <span>optional · shown to people you meet</span></summary>
-      <div class="profgrid"><label>Hostel<select id="prof_h"></select></label><label>Year<select id="prof_y"></select></label><label>Department<select id="prof_d"></select></label></div>
+      <div class="profgrid"><label>Hostel<select id="prof_h"></select></label><label>Year<select id="prof_y"></select></label></div>
+      <div class="field-label">Department</div><div id="prof_d" class="tags codes"></div>
       <div class="field-label">Interests (up to 3)</div><div id="prof_i" class="tags"></div>
     </details>
     <div class="field-label">Choose your student</div>
@@ -2742,10 +2751,10 @@ if (TOUCH) initTouch();
 const PROFILE_LISTS = {
   h: ['Alakananda','Bhadra','Brahmaputra','Cauvery','Ganga','Godavari','Jamuna','Krishna','Mahanadhi','Mandakini','Narmada','Pampa','Sabarmati','Saraswathi','Sarayu','Sharavathi','Sindhu','Tamiraparani','Tapti','Tunga','Day scholar','Other'],
   y: ['1st year','2nd year','3rd year','4th year','5th year','Masters','PhD','Alumni','Faculty / Staff','Visitor'],
-  d: ['Aerospace','Applied Mechanics','Biotechnology','Chemical','Chemistry','Civil','Computer Science','Data Science & AI','Electrical','Engineering Design','Humanities','Management Studies','Mathematics','Mechanical','Medical Sciences','Metallurgy','Ocean','Physics','Other'],
+  d: ['AE', 'AM', 'BT', 'CE', 'CH', 'CS', 'CY', 'DA', 'ED', 'EE', 'HS', 'MA', 'ME', 'MM', 'MS', 'OE', 'PH', 'Other'],
   i: ['Football','Cricket','Music','Dance','Coding','Gaming','Movies','Books','Startups','Photography','Fitness','Chai','Travel','Art'],
 };
-const EMOTE_LIST = [['wave','Wave','👋'],['dance','Dance','💃'],['cheer','Cheer','🙌'],['clap','Clap','👏'],['sit','Sit','🪑']];
+const EMOTE_LIST = [['wave','Wave',`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v7.5a6 6 0 0 1-6 6h-.6a5 5 0 0 1-3.9-1.9L4 14.5a1.5 1.5 0 0 1 2.3-1.9L8 14.5"/></svg>`],['dance','Dance',`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>`],['cheer','Cheer',`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>`],['clap','Clap',`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></svg>`],['sit','Sit',`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21v-6h12v6M6 15V4M6 11h12"/></svg>`]];
 const FISH_TABLE = [['Tilapia',35,.4,2.5],['Rohu',25,1,6],['Catla',15,1.5,8],['Murrel',12,.6,4],['Catfish',11,.8,5],['Golden Mahseer',2,4,12]];
 const PITCH = { W:13, L:21, goalHalf:2 };
 const act = { seated:null, fishing:null, batting:null, swim:null, emote:null, tables:new Map(), rec:{}, fb:null };
@@ -2756,10 +2765,17 @@ function loadProfile(){ try { return JSON.parse(localStorage.getItem('iitmcraft.
 function saveProfile(p){ try { localStorage.setItem('iitmcraft.prof', JSON.stringify(p)); } catch {} }
 function setupProfileForm(){
   const p = loadProfile();
-  for (const k of ['h','y','d']) {
+  for (const k of ['h','y']) {
     const sel = $('prof_' + k);
     sel.innerHTML = '<option value="">—</option>' + PROFILE_LISTS[k].map(v => `<option>${v}</option>`).join('');
     sel.value = p[k] || '';
+  }
+  let dept = p.d || '';
+  const dbox = $('prof_d'); dbox.innerHTML = '';
+  for (const c of PROFILE_LISTS.d) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tag' + (dept === c ? ' on' : ''); b.textContent = c;
+    b.onclick = () => { dept = dept === c ? '' : c; [...dbox.children].forEach(x => x.classList.toggle('on', x.textContent === dept)); };
+    dbox.appendChild(b);
   }
   const box = $('prof_i'), chosen = new Set(p.i || []);
   box.innerHTML = '';
@@ -2768,7 +2784,7 @@ function setupProfileForm(){
     b.onclick = () => { if (chosen.has(t)) chosen.delete(t); else if (chosen.size < 3) chosen.add(t); b.classList.toggle('on', chosen.has(t)); };
     box.appendChild(b);
   }
-  profileNow = () => { const o = {}; for (const k of ['h','y','d']) if ($('prof_'+k).value) o[k] = $('prof_'+k).value; if (chosen.size) o.i = [...chosen]; saveProfile(o); return o; };
+  profileNow = () => { const o = {}; for (const k of ['h','y']) if ($('prof_'+k).value) o[k] = $('prof_'+k).value; if (dept) o.d = dept; if (chosen.size) o.i = [...chosen]; saveProfile(o); return o; };
 }
 let profileNow = () => loadProfile();
 function profileLine(pr){ return pr ? [pr.h && (pr.h === 'Day scholar' || pr.h === 'Other' ? pr.h : pr.h + ' hostel'), pr.y, pr.d].filter(Boolean).join(' · ') : ''; }
@@ -3292,7 +3308,7 @@ setupProfileForm();
 $('bEvClose').onclick = closeEvents;
 { // touch: emote picker
   const pick = $('emoPick');
-  for (const [e, label, icon] of EMOTE_LIST) { const b = document.createElement('button'); b.textContent = icon; b.title = label; b.onclick = () => { pick.hidden = true; doEmote(e); }; pick.appendChild(b); }
+  for (const [e, label, icon] of EMOTE_LIST) { const b = document.createElement('button'); b.innerHTML = icon; b.title = label; b.setAttribute('aria-label', label); b.onclick = () => { pick.hidden = true; doEmote(e); }; pick.appendChild(b); }
   $('tEmote').onclick = () => { pick.hidden = !pick.hidden; };
 }
 

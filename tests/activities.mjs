@@ -33,7 +33,7 @@ async function player(name, kind, prof){
 const pos = p => p.evaluate(() => ({ x: iitm.player.pos.x, y: iitm.player.pos.y, z: iitm.player.pos.z }));
 
 try {
-  const A = await player('Asha', 'girl', { h: 'Sarayu', y: '2nd year', d: 'Computer Science', i: ['Music', 'Chai'] });
+  const A = await player('Asha', 'girl', { h: 'Sarayu', y: '2nd year', d: 'CS', i: ['Music', 'Chai'] });
   const B = await player('Ravi', 'boy');
   const C = await player('Meera', 'girl');
   check('Three players connect', await until(() => A.evaluate(() => iitm.net.peers.size === 2), 8000));
@@ -45,7 +45,7 @@ try {
   await B.evaluate(n => { const q = iitm.places().find(p => p.n === n); iitm.teleport(q.front[0] + 2.5, q.front[1] + .5, 0); }, meet);
   await sleep(1200);
   const card = await until(() => B.evaluate(() => { iitm.updatePrompt(); return !document.getElementById('pcard').hidden && document.getElementById('pcard').textContent; }), 4000);
-  check('Walking up to someone shows their mini profile', /Sarayu hostel/.test(card || '') && /Computer Science/.test(card || '') && /Music/.test(card || ''), String(card).slice(0, 80) + ' ' + JSON.stringify(await B.evaluate(() => ({ focus: iitm.focusNow(), profs: [...iitm.net.peers.values()].map(p => [p.name, p.prof]) }))) + ' sent=' + JSON.stringify(await A.evaluate(() => JSON.parse(localStorage.getItem('iitmcraft.prof') || 'null'))));
+  check('Walking up to someone shows their mini profile', /Sarayu hostel/.test(card || '') && / CS/.test(card || '') && /Music/.test(card || ''), String(card).slice(0, 80) + ' ' + JSON.stringify(await B.evaluate(() => ({ focus: iitm.focusNow(), profs: [...iitm.net.peers.values()].map(p => [p.name, p.prof]) }))) + ' sent=' + JSON.stringify(await A.evaluate(() => JSON.parse(localStorage.getItem('iitmcraft.prof') || 'null'))));
 
   // ---------- emotes ----------
   await A.keyboard.press('Digit1');

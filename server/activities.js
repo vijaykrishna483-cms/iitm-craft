@@ -4,8 +4,7 @@
 export const HOSTELS = ['Alakananda','Bhadra','Brahmaputra','Cauvery','Ganga','Godavari','Jamuna','Krishna','Mahanadhi','Mandakini',
   'Narmada','Pampa','Sabarmati','Saraswathi','Sarayu','Sharavathi','Sindhu','Tamiraparani','Tapti','Tunga','Day scholar','Other'];
 export const YEARS = ['1st year','2nd year','3rd year','4th year','5th year','Masters','PhD','Alumni','Faculty / Staff','Visitor'];
-export const DEPTS = ['Aerospace','Applied Mechanics','Biotechnology','Chemical','Chemistry','Civil','Computer Science','Data Science & AI',
-  'Electrical','Engineering Design','Humanities','Management Studies','Mathematics','Mechanical','Medical Sciences','Metallurgy','Ocean','Physics','Other'];
+export const DEPTS = ['AE', 'AM', 'BT', 'CE', 'CH', 'CS', 'CY', 'DA', 'ED', 'EE', 'HS', 'MA', 'ME', 'MM', 'MS', 'OE', 'PH', 'Other'];
 export const INTERESTS = ['Football','Cricket','Music','Dance','Coding','Gaming','Movies','Books','Startups','Photography','Fitness','Chai','Travel','Art'];
 export const EMOTES = ['wave','dance','cheer','clap','sit'];
 export const FISH = { Tilapia: 2.5, Rohu: 6, Catla: 8, Murrel: 4, Catfish: 5, 'Golden Mahseer': 12 };
