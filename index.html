@@ -182,9 +182,8 @@
   .btn:hover{filter:brightness(1.05)}
   .btn:disabled{opacity:.5;cursor:default}
   .foot{margin-top:18px;font:400 11.5px/1.5 var(--sans);color:rgba(180,195,191,.7)}
-  .dev{color:var(--gold);font-weight:600;text-decoration:none;border-bottom:1px solid rgba(232,193,112,.4)}
-  .dev:hover{border-bottom-color:var(--gold)}
-  .credit{margin-top:6px;font:500 12px var(--sans);color:rgba(180,195,191,.85)}
+  .dev{color:inherit;text-decoration:none}
+  .dev:hover{text-decoration:underline}
   /* loading: a campus-plan grid, blocks being laid, a segmented progress track */
   #loading{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:
     radial-gradient(ellipse at 50% 40%, rgba(232,193,112,.08), transparent 60%),
@@ -289,8 +288,7 @@
       <kbd>Esc</kbd><span>Pause</span><kbd>Space</kbd><span>Jump</span>
     </div>
     <button class="btn" id="bStart">Start exploring</button>
-    <div class="foot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras.</div>
-    <div class="credit">Built by <a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener">@vijaykrishna483-cms</a></div>
+    <div class="foot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras. · by <a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener">@vijaykrishna483-cms</a></div>
   </div>
 </div>
 
@@ -309,7 +307,6 @@
     </div>
     <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
     <button class="linkish" id="bUnstuck">Stuck? Go back to the Main Gate</button>
-    <div class="credit">Built by <a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener">@vijaykrishna483-cms</a></div>
   </div>
 </div>
 
@@ -350,7 +347,7 @@
     <div class="loadrow"><span id="loadmsg">Getting ready</span><span id="loadpct">0%</span></div>
     <p id="loadtip"></p>
   </div>
-  <div class="loadfoot">Built by <a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener">@vijaykrishna483-cms</a> · Made purely for entertainment. Not affiliated with or endorsed by IIT Madras.</div>
+  <div class="loadfoot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras.</div>
 </div>
 
 <script type="module">
