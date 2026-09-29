@@ -1896,6 +1896,10 @@ function updatePlayer(dt){
   return sprint && (f||r);
 }
 function teleport(x,z,face){
+  // travelling anywhere ends an over, a seat or a fishing line
+  if (act.batting) { act.batting = null; if (crkBall) crkBall.visible = false; if (student) student.arms[1].rotation.x = 0; }
+  if (act.seated) standUp();
+  if (act.fishing) stopFishing();
   if (driving) exitBuggy(true);
   if (riding) leaveSeat();
   const standAt = (x,z) => {
