@@ -3210,26 +3210,27 @@ function venueCount(p, r){
 function buildBoard(){
   const gcP = place('Gajendra Circle'); if (!gcP) return;
   // first clear patch of ground on the edge of the circle, starting from the south (where people arrive)
-  const clear = (x,z) => { for (let dx=-2; dx<=2; dx++) for (let y=G+1; y<=G+4; y++) if (get(Math.floor(x+dx),y,Math.floor(z)) || get(Math.floor(x),y,Math.floor(z+dx))) return false; return !!get(Math.floor(x),G,Math.floor(z)) && !buggies.some(v => Math.hypot(v.x - x, v.z - z) < 6); };
+  // off the road: solid ground, no road tiles and nothing built within 4 blocks, no parked vehicles
+  const clear = (x,z) => { for (let dx=-4; dx<=4; dx++) for (let dz=-4; dz<=4; dz++) { const X = Math.floor(x+dx), Z = Math.floor(z+dz); if (get(X,G,Z) === ROAD || !get(X,G,Z)) return false; if (Math.abs(dx) <= 3 && Math.abs(dz) <= 1) for (let y=G+1; y<=G+5; y++) if (get(X,y,Z)) return false; } return !buggies.some(v => Math.hypot(v.x - x, v.z - z) < 7); };
   let bx = gcP.cx + .5, bz = gcP.cz + 13.5;
-  for (let k=0; k<40; k++) { const a = Math.PI/2 + (k%2 ? 1 : -1)*Math.ceil(k/2)*.16, r = 13.5; const x = gcP.cx+.5 + Math.cos(a)*r, z = gcP.cz+.5 + Math.sin(a)*r; if (clear(x,z)) { bx = x; bz = z; break; } }
+  for (let k=0; k<160; k++) { const a = Math.PI/2 + (k%2 ? 1 : -1)*Math.ceil(k/2%40)*.16, r = 15 + Math.floor(k/80)*3; const x = gcP.cx+.5 + Math.cos(a)*r, z = gcP.cz+.5 + Math.sin(a)*r; if (clear(x,z)) { bx = x; bz = z; break; } }
   boardAt = { x: bx, z: bz, cx:gcP.cx, cz:gcP.cz };
   const face = Math.atan2(boardAt.x - (gcP.cx + .5), boardAt.z - (gcP.cz + .5));   // face outwards, towards people walking up
   const grp = new THREE.Group(); grp.position.set(boardAt.x, G+1, boardAt.z); grp.rotation.y = face;
-  grp.add(model([part(.14,3.3,.14,0x5b4632,-1.9,1.65,0), part(.14,3.3,.14,0x5b4632,1.9,1.65,0), part(4.1,.2,.3,0x3a2a1c,0,3.3,0)]));
+  grp.add(model([part(.22,1.3,.22,0x2a2e31,-2.4,.65,0), part(.22,1.3,.22,0x2a2e31,2.4,.65,0), part(6.7,3.9,.3,0x14171a,0,3.05,0), part(2.2,.12,.5,0x2a2e31,0,.06,0)]));
   boardTex = canvasTex(1024,640,() => {});
-  const mat = new THREE.MeshLambertMaterial({ map:boardTex, emissive:0xffffff, emissiveMap:boardTex, emissiveIntensity:.35 });
-  for (const ry of [0, Math.PI]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(3.8,2.4), mat); m.position.set(0,2.05, ry ? -.02 : .02); m.rotation.y = ry; grp.add(m); }
+  const mat = new THREE.MeshBasicMaterial({ map:boardTex });   // a lit digital screen
+  for (const ry of [0, Math.PI]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(6.3,3.5), mat); m.position.set(0,3.05, ry ? -.16 : .16); m.rotation.y = ry; grp.add(m); }
   scene.add(grp);
   drawBoard();
 }
 function drawBoard(){
   if (!boardTex) return;
   const g = boardTex.image.getContext('2d');
-  g.fillStyle = '#0f3236'; g.fillRect(0,0,1024,640);
-  g.strokeStyle = 'rgba(232,193,112,.6)'; g.lineWidth = 6; g.strokeRect(12,12,1000,616);
+  const bg = g.createLinearGradient(0,0,0,640); bg.addColorStop(0,'#0a1d21'); bg.addColorStop(1,'#061114'); g.fillStyle = bg; g.fillRect(0,0,1024,640);
+  g.fillStyle = 'rgba(111,208,140,.95)'; g.beginPath(); g.arc(964,64,9,0,7); g.fill(); g.font = `700 20px ${SANS}`; g.textAlign = 'right'; g.fillText('LIVE', 944, 71);
   g.fillStyle = '#e8c170'; g.font = `700 30px ${SANS}`; g.textAlign = 'left'; g.fillText('WHAT’S ON AT IITM', 48, 72);
-  g.fillStyle = '#f3ead8'; g.font = `600 22px ${SANS}`; g.textAlign = 'right'; g.fillText('Press E here to go', 976, 72);
+  g.fillStyle = '#9fb3ae'; g.font = `600 20px ${SANS}`; g.textAlign = 'left'; g.fillText('Press E here to go', 48, 104);
   VENUES().forEach(([ic, name, where, p, r], i) => {
     const y = 140 + i*70, n = venueCount(p, r);
     g.textAlign = 'left'; g.font = `600 36px ${SANS}`; g.fillStyle = '#f3ead8'; g.fillText(`${ic}  ${name}`, 48, y);
