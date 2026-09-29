@@ -9,6 +9,7 @@ const MAX_PLAYERS = Number(process.env.MAX_PLAYERS) || 150;
 const TICK_MS = 100;            // snapshot rate (10 Hz)
 const VIEW_RANGE = 220;         // only send players within this many blocks
 const CHAT_RANGE = 10;          // how close two students must be to start a chat
+const SAY_RANGE = 30;           // nearby group chat reaches everyone within this many blocks
 const WORLD = { x: 480, z: 528, yMin: -20, yMax: 80 };
 const ANIMS = new Set(['walk', 'air', 'fly', 'sit', 'cycle']);
 const INDEX = new URL('../index.html', import.meta.url);
@@ -126,7 +127,7 @@ wss.on('connection', ws => {
       if (m.t !== 'join') return;
       if (players.size >= MAX_PLAYERS) { ws.send(JSON.stringify({ t: 'full' })); return ws.close(); }
       me = { ws, id: nextId++, name: cleanName(m.name) || 'Student', kind: m.kind === 'girl' ? 'girl' : 'boy',
-        x: 0, y: 0, z: 0, f: 0, a: 'walk', v: -1, seat: 0, vh: 0, chatWith: 0, pendingFrom: new Map(), lastReq: 0, lastChat: 0, ready: false };
+        x: 0, y: 0, z: 0, f: 0, a: 'walk', v: -1, seat: 0, vh: 0, chatWith: 0, pendingFrom: new Map(), lastReq: 0, lastChat: 0, lastSay: 0, ready: false };
       players.set(me.id, me);
       send(me, { t: 'welcome', id: me.id, online: players.size,
         players: [...players.values()].filter(p => p !== me && p.ready).map(pub),
@@ -203,6 +204,16 @@ wss.on('connection', ws => {
         return;
       }
       case 'chatEnd': endChat(me); return;
+      case 'say': {
+        // nearby group chat: plain text to every student within SAY_RANGE
+        const text = clean(m.text, 160);
+        if (!text || Date.now() - me.lastSay < 800) return;
+        me.lastSay = Date.now();
+        const msg = JSON.stringify({ t: 'say', from: me.id, name: me.name, text });
+        for (const p of players.values())
+          if (p !== me && p.ready && p.ws.readyState === 1 && Math.hypot(p.x - me.x, p.z - me.z) < SAY_RANGE) p.ws.send(msg);
+        return;
+      }
     }
   });
 

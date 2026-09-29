@@ -43,6 +43,17 @@
   #place .name{font:600 30px/1.1 var(--serif);text-shadow:0 2px 14px rgba(0,0,0,.45);transition:opacity .3s}
   #mode{position:absolute;right:20px;bottom:22px}
   label.field-label{display:block}
+  /* nearby group chat */
+  #feed{position:absolute;left:20px;bottom:112px;width:min(380px,44vw);display:flex;flex-direction:column;gap:6px;pointer-events:none}
+  #feedLog{display:flex;flex-direction:column;gap:5px}
+  .fl{font:500 13.5px/1.4 var(--sans);color:var(--cream);background:rgba(15,50,54,.8);border-radius:10px;padding:6px 11px;align-self:flex-start;max-width:100%;word-wrap:break-word;transition:opacity .6s}
+  .fl b{color:var(--gold);font-weight:700;margin-right:6px}
+  .fl.me b{color:#9fd7b0}
+  #sayBar{display:flex;align-items:center;gap:8px;background:rgba(15,50,54,.95);border:1px solid var(--gold);border-radius:12px;padding:6px 8px;pointer-events:auto}
+  #sayBar[hidden]{display:none}
+  #sayBar .chip{font:700 10.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#1c2a22;background:var(--gold);border-radius:6px;padding:3px 7px}
+  #sayInput{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--cream);font:500 14px var(--sans)}
+  body.touch #feed{left:14px;bottom:auto;top:98px;width:min(300px,48vw)}
   /* touch controls */
   .touch-only,.touch-word{display:none}
   body.touch .touch-word{display:inline}
@@ -217,6 +228,7 @@
   <div id="tools">
     <div class="icon" id="bMap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg><span>Map · M</span></div>
     <div class="icon" id="bTime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Time · T</span></div>
+    <div class="icon touch-only" id="bSay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4V5Z"/><path d="M8 9h8M8 12h5"/></svg><span>Chat nearby</span></div>
     <div class="icon" id="bFeedback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z"/></svg><span>Suggest a feature</span></div>
     <div class="icon touch-only" id="bPause"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6v12M15 6v12"/></svg><span>Pause</span></div>
     <div class="icon" id="bHelp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg><span>Controls</span></div>
@@ -225,7 +237,8 @@
   <div id="toasts"></div>
   <div id="place"><div class="eyebrow" id="pZone">Sardar Patel Road</div><div class="name" id="pName">Main Gate</div></div>
   <div id="mode" class="pill">Walking</div>
-  <div id="escHint"><kbd>Esc</kbd> Pause &middot; suggest a feature</div>
+  <div id="escHint"><kbd>Enter</kbd> Talk to people nearby &middot; <kbd>Esc</kbd> Pause</div>
+  <div id="feed"><div id="feedLog" aria-live="polite"></div><div id="sayBar" hidden><span class="chip">Nearby</span><input id="sayInput" maxlength="160" placeholder="Say something to everyone nearby" autocomplete="off" enterkeyhint="send"></div></div>
   <div id="hint">Press <kbd>M</kbd> for the campus map</div>
   <div id="chatreq" class="hidden">
     <div class="eyebrow">Chat request</div>
@@ -233,7 +246,7 @@
     <div class="reqbtns"><button class="btn sm" id="reqYes"><kbd>Y</kbd> Accept</button><button class="ghost sm" id="reqNo"><kbd>N</kbd> Decline</button></div>
   </div>
   <div id="chat" class="hidden">
-    <header><div><div class="eyebrow">Chatting with</div><b id="chatName"></b></div><button id="chatClose" title="End chat (X)">&times;</button></header>
+    <header><div><div class="eyebrow">Private chat</div><b id="chatName"></b></div><button id="chatClose" title="End chat (X)">&times;</button></header>
     <div id="chatLog"></div>
     <input id="chatInput" maxlength="240" placeholder="Press Enter to type" autocomplete="off">
     <div class="chathint"><kbd>Enter</kbd> type &middot; <kbd>X</kbd> end chat</div>
@@ -2216,6 +2229,7 @@ function onNet(m){
     case 'chatDeclined': toast('Chat', `${m.name} can't chat right now`, 'Your request was declined.'); break;
     case 'chatOpen': hideChatRequest(); openChat(m.with, m.name); break;
     case 'chat': addChatLine(m.name, m.text, false); break;
+    case 'say': showSay(net.peers.get(m.from), m.name, m.text); break;
     case 'chatEnd': closeChat(false, `${net.chatName} left the chat.`); break;
   }
 }
@@ -2373,6 +2387,52 @@ $('chatInput').addEventListener('keydown', e => {
   } else if (e.key === 'Escape') e.target.blur();
 });
 $('chatClose').onclick = () => closeChat(true);
+
+// ---------- nearby group chat ----------
+let lastSay = 0;
+function openSay(){ if (state !== 'play') return; keys.clear(); $('sayBar').hidden = false; $('sayInput').focus(); }
+function closeSay(){ $('sayInput').value = ''; $('sayBar').hidden = true; $('sayInput').blur(); }
+$('sayInput').addEventListener('keydown', e => {
+  e.stopPropagation();
+  if (e.key === 'Enter') {
+    const text = e.target.value.trim().slice(0, 160);
+    if (text && performance.now() - lastSay > 900) { lastSay = performance.now(); nsend({ t:'say', text }); showSay(null, 'You', text, true); }
+    closeSay();
+  } else if (e.key === 'Escape') closeSay();
+});
+$('sayInput').addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('sayInput')) $('sayBar').hidden = true; }, 150));
+function showSay(peer, name, text, mine=false){
+  const row = document.createElement('div'); row.className = 'fl' + (mine ? ' me' : '');
+  const b = document.createElement('b'); b.textContent = name;
+  row.append(b, document.createTextNode(text));
+  const log = $('feedLog'); log.appendChild(row);
+  while (log.children.length > 6) log.firstChild.remove();
+  setTimeout(() => { row.style.opacity = 0; setTimeout(() => row.remove(), 700); }, 15000);
+  const holder = mine ? student && student.g : peer && peer.s && peer.s.g;
+  if (holder) speechBubble(holder, text, mine ? 2.35 : 2.55);
+}
+// a speech bubble that floats over the speaker for a few seconds
+function speechBubble(holder, text, y){
+  const old = holder.userData.bubble;
+  if (old) { holder.remove(old); old.material.map.dispose(); old.material.dispose(); }
+  const words = text.split(/\s+/), lines = []; let line = '';
+  const cv = document.createElement('canvas').getContext('2d'); cv.font = `500 40px ${SANS}`;
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (cv.measureText(t).width > 560 && line) { lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line);
+  if (lines.length > 3) { lines.length = 3; lines[2] = lines[2].replace(/\s*\S*$/, '') + '…'; }
+  const tw = Math.min(600, Math.max(...lines.map(l => cv.measureText(l).width))), W = Math.ceil(tw + 56), H = lines.length*50 + 56;
+  const tex = canvasTex(W, H, g => {
+    g.fillStyle = '#f5eedd'; g.beginPath(); g.roundRect(2, 2, W-4, H-26, 22); g.fill();
+    g.beginPath(); g.moveTo(W/2-14, H-26); g.lineTo(W/2, H-4); g.lineTo(W/2+14, H-26); g.fill();
+    g.fillStyle = '#10353a'; g.font = `500 40px ${SANS}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    lines.forEach((l, i) => g.fillText(l, W/2, 28 + 25 + i*50 - 2));
+  });
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false }));
+  const k = .0042; sp.scale.set(W*k, H*k, 1); sp.center.set(.5, 0); sp.position.set(0, y, 0); sp.renderOrder = 7;
+  holder.add(sp); holder.userData.bubble = sp;
+  setTimeout(() => { if (holder.userData.bubble === sp) { holder.remove(sp); tex.dispose(); sp.material.dispose(); holder.userData.bubble = null; } }, 7000);
+}
+$('bSay').onclick = () => { if (state === 'play') openSay(); };
 $('reqYes').onclick = () => respondChat(true);
 $('reqNo').onclick = () => respondChat(false);
 
@@ -2481,9 +2541,10 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('wheel', e => { if (state === 'play') camDist = Math.max(2.5, Math.min(10, camDist + Math.sign(e.deltaY)*.7)); }, { passive:true });
 document.addEventListener('keydown', e => {
   if (state === 'feedback') { if (e.code === 'Escape') closeFeedback(); return; }
-  if (document.activeElement && ['nameInput','chatInput'].includes(document.activeElement.id)) return;
+  if (document.activeElement && ['nameInput','chatInput','sayInput'].includes(document.activeElement.id)) return;
   if (state === 'play' && net.pendingReq && (e.code === 'KeyY' || e.code === 'KeyN')) { respondChat(e.code === 'KeyY'); return; }
   if (state === 'play' && net.chatWith && e.code === 'Enter') { e.preventDefault(); keys.clear(); $('chatInput').focus(); return; }
+  if (state === 'play' && (e.code === 'Enter' || e.code === 'KeyC')) { e.preventDefault(); openSay(); return; }
   if (state === 'play' && net.chatWith && e.code === 'KeyX') { closeChat(true); return; }
   if (e.code === 'KeyM' && (state === 'play' || state === 'paused')) { openMap(); return; }
   if (state === 'map') { if (e.code === 'KeyM') closeMap(true); else if (e.code === 'Escape') closeMap(false); return; }

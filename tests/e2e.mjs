@@ -318,6 +318,14 @@ try {
   check('Typing in chat does not move the player', await B.evaluate(() => !iitm.keys.has('KeyW')));
   await A.keyboard.press('KeyX');
   check('X ends the chat for both', await until(async () => !(await A.isVisible('#chat')) && !(await B.isVisible('#chat')), 3000));
+  // nearby group chat
+  await A.keyboard.press('Enter');
+  check('Enter opens the nearby chat box', await A.isVisible('#sayBar') && await A.evaluate(() => document.activeElement.id === 'sayInput'));
+  await A.keyboard.type('hello everyone'); await A.keyboard.press('Enter');
+  check('Nearby message reaches students close by', await until(() => B.evaluate(() => document.getElementById('feedLog').textContent.includes('Ashahello everyone')), 3000));
+  check('Speaker gets a speech bubble over their head', await B.evaluate(() => [...iitm.net.peers.values()].some(p => p.name === 'Asha' && p.s.g.userData.bubble)));
+  check('Your own message shows as You', await A.evaluate(() => document.getElementById('feedLog').textContent.includes('Youhello everyone')));
+  check('Chat box closes after sending and typing did not move you', !(await A.isVisible('#sayBar')) && await A.evaluate(() => iitm.keys.size === 0));
 
   // vehicle occupancy
   const vid = await A.evaluate(() => {
@@ -458,6 +466,21 @@ try {
   check('A fourth passenger is turned away', riders[1].msgs.filter(m => m.t === 'enterRes').pop()?.ok === false);
   riders.forEach(w => w.close());
   await sleep(200);
+  // nearby chat only reaches players within range, and is rate limited
+  const near1 = await raw(), near2 = await raw(), farAway = await raw();
+  [near1, near2, farAway].forEach((w, i) => w.send(JSON.stringify({ t: 'join', name: 'Say ' + i, kind: 'boy' })));
+  await sleep(200);
+  near1.send(JSON.stringify({ t: 's', x: 100, y: 13, z: 100, f: 0, a: 'walk', vh: 0 }));
+  near2.send(JSON.stringify({ t: 's', x: 110, y: 13, z: 100, f: 0, a: 'walk', vh: 0 }));
+  farAway.send(JSON.stringify({ t: 's', x: 300, y: 13, z: 300, f: 0, a: 'walk', vh: 0 }));
+  await sleep(200);
+  near1.send(JSON.stringify({ t: 'say', text: 'hi nearby' }));
+  near1.send(JSON.stringify({ t: 'say', text: 'spam' }));
+  await sleep(400);
+  check('Nearby chat reaches players within range', near2.msgs.some(m => m.t === 'say' && m.text === 'hi nearby'));
+  check('Nearby chat does not reach farAway-away players', !farAway.msgs.some(m => m.t === 'say'));
+  check('Nearby chat is rate limited', !near2.msgs.some(m => m.t === 'say' && m.text === 'spam'));
+  [near1, near2, farAway].forEach(w => w.close());
   check('Message flooding disconnects the client', await Promise.race([closed.then(() => true), sleep(3000).then(() => false)]));
   w2.close();
   const online = await (await fetch(`${BASE}/api/online`)).json();
