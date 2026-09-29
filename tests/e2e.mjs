@@ -80,6 +80,8 @@ try {
   check('Bicycles at stands', world.cycles >= 60, `${world.cycles}`);
   check('Deer population', world.deer === 60, `${world.deer}`);
   check('Monkey population', world.monkeys === 40, `${world.monkeys}`);
+  const crocInfo = await A.evaluate(() => iitm.crocs());
+  check('A few crocodiles live in the lakes', crocInfo.length >= 3 && crocInfo.length <= 8 && crocInfo.every(c => c.wet), `${crocInfo.length} crocodiles`);
   check('Online counter on start screen', (await A.textContent('#liveCount')).length > 0, await A.textContent('#liveCount'));
 
   await startAs(A, 'Asha', 'girl');

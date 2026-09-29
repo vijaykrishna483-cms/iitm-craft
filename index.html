@@ -1614,8 +1614,121 @@ function updateWildlife(dt, sprinting){
     m.legs.forEach((l,k) => l.rotation.x = sitting ? (k < 2 ? .3 : -1.2) : (k===0||k===3) ? sw : -sw);
     m.headG.rotation.y = sitting ? Math.sin(m.t*1.3)*.4 : 0;
   }
+  updateCrocs(dt);
   for (const h of hearts) { h.life -= dt; h.s.position.y += dt*1.2; h.s.position.x += h.vx*dt; h.s.material.opacity = Math.min(1,h.life); }
   for (let i=hearts.length-1;i>=0;i--) if (hearts[i].life <= 0) { scene.remove(hearts[i].s); hearts[i].s.material.dispose(); hearts.splice(i,1); }
+}
+
+// ---------- mugger crocodiles in the lakes ----------
+const crocs = [];
+const isLake = (x,z) => get(x,G-1,z) === WATER && !get(x,G,z);   // lakes sit a block down; the pool and fountain don't
+function makeCroc(){
+  const olive = 0x55603a, dark = 0x3f482b, belly = 0xb9b48a;
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const bp = [part(.62,.26,1.1,olive,0,.2,0), part(.58,.06,1.04,belly,0,.07,0)];
+  for (let i=0;i<5;i++) for (const sx of [-.14,.14]) bp.push(part(.08,.06,.12,dark,sx,.35,-.42+i*.21));
+  body.add(model(bp));
+  const headG = new THREE.Group(); headG.position.set(0,.14,.55); body.add(headG);
+  headG.add(model([part(.42,.18,.42,olive,0,.06,.18), part(.3,.12,.56,olive,0,.04,.66), part(.12,.05,.08,dark,0,.1,.9),
+    part(.1,.1,.1,olive,-.13,.2,.12), part(.1,.1,.1,olive,.13,.2,.12), part(.05,.05,.02,0xd8c24a,-.13,.21,.18), part(.05,.05,.02,0xd8c24a,.13,.21,.18),
+    ...[.3,.5,.7,.86].flatMap(z => [part(.03,.05,.03,0xf2eee0,-.14,-.03,z), part(.03,.05,.03,0xf2eee0,.14,-.03,z)])]));
+  const jaw = new THREE.Group(); jaw.position.set(0,-.02,.05); headG.add(jaw);
+  jaw.add(model([part(.28,.06,.86,belly,0,-.02,.42), part(.03,.05,.03,0xf2eee0,-.12,.03,.55), part(.03,.05,.03,0xf2eee0,.12,.03,.55), part(.03,.05,.03,0xf2eee0,-.1,.03,.75), part(.03,.05,.03,0xf2eee0,.1,.03,.75)]));
+  const tail = [];
+  let parent = body, z = -.55;
+  for (const [w,h,c] of [[.46,.2,olive],[.32,.16,olive],[.2,.12,dark]]) {
+    const seg = new THREE.Group(); seg.position.set(0,.15,z); parent.add(seg);
+    seg.add(model([part(w,h,.62,c,0,0,-.3), part(.06,.06,.5,dark,0,h/2+.02,-.3)]));
+    tail.push(seg); parent = seg; z = -.6;
+  }
+  const legs = [[-.36,.36],[.36,.36],[-.36,-.36],[.36,-.36]].map(([lx,lz]) => limb(body,lx,.1,lz,[part(.14,.1,.3,olive,lx < 0 ? -.08 : .08,-.03,.05)]));
+  g.scale.setScalar(1.15);
+  return { g, body, headG, jaw, tail, legs };
+}
+function spawnCrocs(){
+  const R = mulberry(777), seen = new Uint8Array(WX*WZ), comps = [];
+  for (let z=1;z<WZ-1;z++) for (let x=1;x<WX-1;x++) {
+    if (seen[z*WX+x] || !isLake(x,z)) continue;
+    const tiles = [], stack = [[x,z]]; seen[z*WX+x] = 1;
+    while (stack.length) {
+      const [cx,cz] = stack.pop(); tiles.push([cx,cz]);
+      for (const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const nx = cx+dx, nz = cz+dz;
+        if (nx<1||nz<1||nx>=WX-1||nz>=WZ-1||seen[nz*WX+nx]||!isLake(nx,nz)) continue;
+        seen[nz*WX+nx] = 1; stack.push([nx,nz]);
+      }
+    }
+    if (tiles.length >= 120) comps.push(tiles);
+  }
+  comps.sort((a,b) => b.length - a.length);
+  for (const tiles of comps) {
+    const shore = [];
+    for (const [x,z] of tiles) for (const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx = x+dx, nz = z+dz, b = get(nx,G,nz);
+      if ((b === SAND || b === GRASS) && !get(nx,G+1,nz) && !get(nx,G+2,nz)) shore.push([nx,nz]);
+    }
+    const n = Math.min(3, Math.max(1, Math.round(tiles.length/500)));
+    for (let i=0, tries=0; i<n && crocs.length < 8 && tries < 200; tries++) {
+      const [x,z] = tiles[(R()*tiles.length)|0];
+      if (crocs.some(c => Math.hypot(c.x-x,c.z-z) < 8)) continue;
+      const m = makeCroc(), c = { ...m, x:x+.5, z:z+.5, y:G-.38, heading:R()*6.28, speed:0, state:'swim', timer:1+R()*4, t:R()*10,
+        home:[x+.5,z+.5], tiles, shore, tx:x+.5, tz:z+.5, open:0, warned:0, R };
+      m.g.position.set(c.x, c.y, c.z); m.g.rotation.y = c.heading; scene.add(m.g); crocs.push(c); i++;
+    }
+  }
+}
+function crocTarget(c){
+  const pool = c.shore.length && c.R() < .3 ? c.shore : c.tiles;
+  for (let k=0;k<20;k++) {
+    const [x,z] = pool[(c.R()*pool.length)|0];
+    if (Math.hypot(x-c.home[0], z-c.home[1]) < 14) { c.tx = x+.5; c.tz = z+.5; c.state = 'move'; c.timer = 25; return; }
+  }
+  c.tx = c.home[0]; c.tz = c.home[1]; c.state = 'move'; c.timer = 25;
+}
+function updateCrocs(dt){
+  const px = player.pos.x, pz = player.pos.z, onFoot = !driving && !riding && !player.fly;
+  for (const c of crocs) {
+    const dx = px-c.x, dz = pz-c.z, pd = Math.hypot(dx,dz);
+    c.g.visible = pd < 90;
+    if (pd > 120) continue;
+    c.t += dt; c.timer -= dt;
+    const inWater = isLake(Math.floor(c.x), Math.floor(c.z));
+    if (onFoot && pd < 4.5) {
+      // someone came too close: turn, open wide and hiss; snap if they keep coming
+      c.state = 'warn'; c.heading = Math.atan2(dx,dz); c.timer = 2;
+      if (pd < 2.3 && performance.now() - c.warned > 15000) {
+        c.warned = performance.now(); c.open = 1;
+        toast('Wildlife', 'The crocodile snaps!', 'Back away slowly. Mugger crocodiles guard their lake.');
+      }
+    } else if (c.timer <= 0) {
+      if (c.state === 'move' || c.state === 'warn') { c.state = inWater ? 'swim' : 'bask'; c.timer = inWater ? 3+c.R()*6 : 8+c.R()*12; }
+      else crocTarget(c);
+    }
+    let target = 0;
+    if (c.state === 'move') {
+      const tx = c.tx-c.x, tz = c.tz-c.z, d = Math.hypot(tx,tz);
+      if (d < .4) c.timer = 0; else { c.heading = Math.atan2(tx,tz); target = inWater ? 1.3 : .8; }
+    }
+    c.speed += (target - c.speed)*Math.min(1,dt*3);
+    if (c.speed > .05) {
+      const nx = c.x+Math.sin(c.heading)*c.speed*dt, nz = c.z+Math.cos(c.heading)*c.speed*dt, ix = Math.floor(nx), iz = Math.floor(nz);
+      const ok = isLake(ix,iz) || c.shore.some(([sx,sz]) => sx === ix && sz === iz);
+      if (ok) { c.x = nx; c.z = nz; } else c.timer = 0;
+    }
+    const wet = isLake(Math.floor(c.x), Math.floor(c.z));
+    c.y += ((wet ? G-.38 : G+1) - c.y)*Math.min(1,dt*3);
+    c.g.position.set(c.x, c.y + (wet ? Math.sin(c.t*1.4)*.03 : 0), c.z);
+    turnTo(c, dt, 3);
+    // jaw: open when warning, now and then while basking
+    const wantOpen = c.state === 'warn' ? .55 : c.state === 'bask' && Math.sin(c.t*.35) > .6 ? .45 : 0;
+    c.open = Math.max(0, c.open - dt*1.5);
+    c.jaw.rotation.x += (Math.max(wantOpen, c.open*.7) - c.jaw.rotation.x)*Math.min(1,dt*6);
+    c.headG.rotation.x = -c.jaw.rotation.x*.35;
+    const sway = Math.sin(c.t*(c.speed > .1 ? 4 : 1.2))*(c.speed > .1 ? .35 : .12);
+    c.tail.forEach((seg,i) => seg.rotation.y = sway*(1+i*.6)*(i%2 ? .9 : 1));
+    const paddle = Math.sin(c.t*6)*Math.min(.6, c.speed*.6);
+    c.legs.forEach((l,k) => l.rotation.y = (k===0||k===3) ? paddle : -paddle);
+  }
 }
 const hearts = [];
 let heartTex;
@@ -1856,8 +1969,10 @@ function findFocus(){
   if (!net.chatWith) for (const p of net.peers.values()) if (!p.vehicle) consider('chat', p, 4, `Chat with ${p.name}`, -1.5);
   for (const d of deer) consider('deer', d, 5.5, d.greeted ? 'Pat the deer' : d.kind === 'buck' ? 'Say hi to the blackbuck' : 'Say hi to the spotted deer', .5);
   for (const m of monkeys) consider('monkey', m, 3.6, 'Wave at the monkey', .5);
+  for (const c of crocs) consider('croc', c, 6, 'Mugger crocodile · keep your distance', 1);
   return best;
 }
+const CROC_LINES = ['It stays perfectly still. Only the eyes follow you.','Mugger crocodiles can hold their breath for over an hour.','It opens its jaws to cool down. Best admired from here.','It slides a little closer to the water. Time to move on.'];
 const MONKEY_LINES = ['It stares at your backpack.','It looks unimpressed.','It chatters and scratches its ear.','It is definitely after your snacks.','It waves back. Probably.'];
 function interact(){
   focus = findFocus();
@@ -1866,6 +1981,7 @@ function interact(){
   if (focus.type === 'ride') return enterSeat(focus.o);
   if (focus.type === 'exit') return riding ? leaveSeat() : exitBuggy(false);
   if (focus.type === 'deer') return greet(focus.o);
+  if (focus.type === 'croc') { const c = focus.o; c.open = 1; return toast('Wildlife', 'Mugger crocodile', CROC_LINES[(Math.random()*CROC_LINES.length)|0]); }
   if (focus.type === 'chat') return requestChat(focus.o);
   if (focus.type === 'monkey') {
     const m = focus.o; m.hop = .6; m.state = 'sit'; m.timer = 3;
@@ -2448,7 +2564,7 @@ function initTouch(){
   $('bPause').onclick = pauseGame;
 
   // keep labels in step with what the buttons will do
-  const USE = { exit:'Get out', drive:'Drive', ride:'Get in', chat:'Chat', deer:'Say hi', monkey:'Wave' };
+  const USE = { exit:'Get out', drive:'Drive', ride:'Get in', chat:'Chat', deer:'Say hi', monkey:'Wave', croc:'Look' };
   let lastSig = '';
   touchLabels = () => {
     if (!running && keys.has('ShiftLeft') && !sinking) keys.delete('ShiftLeft');
@@ -2520,7 +2636,7 @@ async function boot(){
   await step(42, 'Planting the forest');       genTrees();
   placeList = PLACES.filter(p => !p.skip);
   placeList.forEach(p => { p.found = false; signboard(p); floatLabel(p); });
-  await step(46, 'Parking the e-buggies');     spawnBuggies(); spawnCycles(); buggies.forEach((b,i) => { b.vid = i; b.riders = [0,0,0]; }); spawnWildlife();
+  await step(46, 'Parking the e-buggies');     spawnBuggies(); spawnCycles(); buggies.forEach((b,i) => { b.vid = i; b.riders = [0,0,0]; }); spawnWildlife(); spawnCrocs();
   for (let z=0;z<WZ;z++) for (let x=0;x<WX;x++) mapPixel(x,z);
   const all = [];
   for (let cz=0;cz<WZ/CS;cz++) for (let cx=0;cx<WX/CS;cx++) all.push([cx,cz]);
@@ -2582,7 +2698,7 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   teleport, places: () => placeList, player, buggies, deer, monkeys, openMap, begin, enterBuggy, exitBuggy, keys, net, requestChat, respondChat, closeChat,
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
-  stateNow: () => state, ridingNow: () => riding && { vid: riding.v.vid, seat: riding.seat }, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT, setDay: t => { dayT = t; },
+  stateNow: () => state, crocList: () => crocs, crocs: () => crocs.map(c => ({ x:c.x, z:c.z, state:c.state, wet:isLake(Math.floor(c.x), Math.floor(c.z)) })), ridingNow: () => riding && { vid: riding.v.vid, seat: riding.seat }, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT, setDay: t => { dayT = t; },
 };
 </script>
 </body>
