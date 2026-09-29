@@ -1336,12 +1336,19 @@ function enterBuggy(b){
 }
 function exitBuggy(force, rejected){
   const b = driving; if (!b) return;
-  const lx = Math.cos(b.heading), lz = -Math.sin(b.heading), off = b.kind === 'cycle' ? 1.1 : 1.9;
-  const tries = [[-lx*off,-lz*off],[lx*off,lz*off],[-Math.sin(b.heading)*2.8,-Math.cos(b.heading)*2.8],[Math.sin(b.heading)*2.8,Math.cos(b.heading)*2.8]];
+  // Look for a clear spot beside the vehicle (right side first, then around it), using each
+  // spot's real ground height. The vehicle itself is not solid, so its own position is the fallback.
+  const sh = Math.sin(b.heading), ch = Math.cos(b.heading), side = b.kind === 'cycle' ? 1.1 : 1.9, len = b.kind === 'cycle' ? 1.4 : 2.8;
+  const tries = [[-ch*side, sh*side], [ch*side, -sh*side], [-sh*len, -ch*len], [sh*len, ch*len],
+    [-ch*side-sh*len*.5, sh*side-ch*len*.5], [ch*side-sh*len*.5, -sh*side-ch*len*.5], [0,0]];
   let spot = null;
-  for (const [ox,oz] of tries) { const t = { x:b.x+ox, y:b.y, z:b.z+oz }; if (!collides(t)) { spot = t; break; } }
-  if (!spot && !force) return;
-  spot ||= { x:b.x, y:b.y+2.2, z:b.z };
+  for (const [ox,oz] of tries) {
+    const x = b.x+ox, z = b.z+oz, gy = carGround(x, z, b.y+.5);
+    if (gy < 0 || Math.abs(gy - b.y) > 1.6) continue;
+    const t = { x, y:gy, z };
+    if (!collides(t)) { spot = t; break; }
+  }
+  spot ||= { x:b.x, y:Math.max(b.y, Math.ceil(b.y - .01)), z:b.z };
   b.speed = 0; driving = null;
   if (!rejected) nsend({ t:'exit', x:b.x, z:b.z, h:b.heading });
   scene.add(student.g);
@@ -1422,6 +1429,7 @@ function findFocus(){
 }
 const MONKEY_LINES = ['It stares at your backpack.','It looks unimpressed.','It chatters and scratches its ear.','It is definitely after your snacks.','It waves back. Probably.'];
 function interact(){
+  focus = findFocus();
   if (!focus) return;
   if (focus.type === 'drive') return enterBuggy(focus.o);
   if (focus.type === 'exit') return exitBuggy(false);
@@ -1939,7 +1947,7 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   teleport, places: () => placeList, player, buggies, deer, monkeys, openMap, begin, enterBuggy, exitBuggy, keys, net, requestChat, respondChat, closeChat,
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
-  stateNow: () => state, toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT,
+  stateNow: () => state, stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT,
 };
 </script>
 </body>

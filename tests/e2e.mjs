@@ -170,9 +170,24 @@ try {
   let k1 = await A.evaluate(() => ({ x: iitm.drivingNow().x, z: iitm.drivingNow().z }));
   if (Math.hypot(k1.x - k0.x, k1.z - k0.z) < 2) { await hold(A, 'KeyS', 2000); k1 = await A.evaluate(() => ({ x: iitm.drivingNow().x, z: iitm.drivingNow().z })); }
   check('Bicycle moves', Math.hypot(k1.x - k0.x, k1.z - k0.z) > 1.5, `${Math.hypot(k1.x - k0.x, k1.z - k0.z).toFixed(1)} blocks`);
-  await sleep(1200);
+  // regression: getting off must work while rolling and with a fractional ride height
+  await A.evaluate(() => { const c = iitm.drivingNow(); c.y -= .0007; c.speed = 3; });
   await A.keyboard.press('KeyE'); await sleep(200);
-  check('E gets off the bicycle', await A.evaluate(() => !iitm.drivingNow()));
+  check('E gets off the bicycle (while rolling, fractional height)', await A.evaluate(() => !iitm.drivingNow()) && (await A.textContent('#mode')) === 'Walking');
+  check('Rider lands standing, not stuck in the ground', await A.evaluate(() => { const p = iitm.player.pos; return p.y >= 12.99 && iitm.stateNow() === 'play'; }));
+  // bike stands sit next to buildings, so try each direction until one is open
+  const g0 = await pos(A); let g1 = g0;
+  for (const yaw of [Math.PI / 2, 0, Math.PI, -Math.PI / 2]) {
+    await A.evaluate(y => iitm.look(y, -.2), yaw);
+    await hold(A, 'KeyW', 1200);
+    g1 = await pos(A);
+    if (Math.hypot(g1.x - g0.x, g1.z - g0.z) > 1) break;
+  }
+  check('Can walk away after getting off', Math.hypot(g1.x - g0.x, g1.z - g0.z) > 1, `${Math.hypot(g1.x - g0.x, g1.z - g0.z).toFixed(1)} blocks`);
+  // same for the e-buggy
+  await A.evaluate(() => { const b = iitm.buggies.find(v => v.kind === 'buggy'); iitm.teleport(b.x, b.z); iitm.enterBuggy(b); const c = iitm.drivingNow(); c.y -= .0004; c.speed = 4; });
+  await A.keyboard.press('KeyE'); await sleep(200);
+  check('E gets out of the e-buggy while moving', await A.evaluate(() => !iitm.drivingNow()));
 
   // deer
   // meet a deer on the open lawn in front of the Chemplast ground
