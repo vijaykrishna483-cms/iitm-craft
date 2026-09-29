@@ -2582,7 +2582,7 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   teleport, places: () => placeList, player, buggies, deer, monkeys, openMap, begin, enterBuggy, exitBuggy, keys, net, requestChat, respondChat, closeChat,
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
-  stateNow: () => state, ridingNow: () => riding && { vid: riding.v.vid, seat: riding.seat }, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT,
+  stateNow: () => state, ridingNow: () => riding && { vid: riding.v.vid, seat: riding.seat }, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT, setDay: t => { dayT = t; },
 };
 </script>
 </body>
