@@ -28,6 +28,10 @@ Opening `index.html` directly also works for single-player; it tries to connect 
 - Day/night cycle, and automatic quality scaling on slower machines
 
 ## Controls
+On phones and tablets: left stick to walk or drive, drag to look around, and the **Use / Jump / Run / Fly** buttons. Pause and the map are in the top-right corner.
+
+On a computer:
+
 | Key | Action |
 |---|---|
 | `WASD` | Walk / drive |

@@ -329,6 +329,52 @@ try {
   await A.close();
 
   // ============================================================
+  //  Phone (touch controls, landscape)
+  // ============================================================
+  const phoneCtx = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
+  const M = await phoneCtx.newPage();
+  M.errors = [];
+  M.on('pageerror', e => M.errors.push(`M: ${e.message}`));
+  await M.goto(`${BASE}/?debug`);
+  await M.waitForSelector('#start:not(.hidden)', { timeout: 180000 });
+  check('Phones get touch controls', await M.evaluate(() => document.body.classList.contains('touch')));
+  check('Phones see touch instructions instead of keyboard keys', await M.isVisible('.tip.touch-only') && !(await M.isVisible('#start .keys')));
+  await M.fill('#nameInput', 'Meera');
+  await M.tap('#bStart');
+  check('Tapping Start enters the game without a mouse lock', await until(() => M.evaluate(() => iitm.stateNow() === 'play'), 3000));
+  check('Joystick and buttons are shown', await M.isVisible('#stick') && await M.isVisible('#tUse') && await M.isVisible('#tJump'));
+  check('Desktop hints are hidden on phones', !(await M.isVisible('#escHint')));
+  await sleep(3000);
+  const tcdp = await phoneCtx.newCDPSession(M);
+  const touchEv = (type, touchPoints) => tcdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+  const sb = await M.locator('#stick').boundingBox(), scx = sb.x + sb.width / 2, scy = sb.y + sb.height / 2;
+  const m0 = await pos(M);
+  await touchEv('touchStart', [{ x: scx, y: scy, id: 1 }]);
+  await touchEv('touchMove', [{ x: scx, y: scy - 60, id: 1 }]);
+  await sleep(1500);
+  await touchEv('touchEnd', []);
+  const m1 = await pos(M);
+  check('Joystick walks the student', Math.hypot(m1.x - m0.x, m1.z - m0.z) > 2, `${Math.hypot(m1.x - m0.x, m1.z - m0.z).toFixed(1)} blocks`);
+  const yaw0 = await M.evaluate(() => iitm.cam().yaw);
+  await touchEv('touchStart', [{ x: 520, y: 200, id: 2 }]);
+  await touchEv('touchMove', [{ x: 420, y: 200, id: 2 }]);
+  await touchEv('touchEnd', []);
+  check('Dragging on the world turns the camera', Math.abs((await M.evaluate(() => iitm.cam().yaw)) - yaw0) > .3);
+  await M.evaluate(() => { const b = iitm.buggies.find(v => v.kind === 'buggy' && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 6)); iitm.teleport(b.x + Math.cos(b.heading) * 2.2, b.z - Math.sin(b.heading) * 2.2); });
+  check('Use button offers to ride a nearby buggy', await until(async () => (await M.textContent('#tUse')) === 'Ride', 2000), await M.textContent('#tUse'));
+  await M.tap('#tUse');
+  check('Tapping Use gets into the buggy', await until(() => M.evaluate(() => !!iitm.drivingNow()), 2000));
+  check('Buttons switch to driving actions', await until(async () => (await M.textContent('#tJump')) === 'Brake' && (await M.textContent('#tUse')) === 'Get out', 2000));
+  await M.tap('#tUse');
+  check('Tapping Use again gets out', await until(() => M.evaluate(() => !iitm.drivingNow()), 2000));
+  await M.tap('#bPause');
+  check('Pause button pauses the game', await M.isVisible('#pause') && await M.evaluate(() => iitm.stateNow() === 'paused'));
+  await M.tap('#bResume');
+  check('Resume returns to the game', await until(() => M.evaluate(() => iitm.stateNow() === 'play'), 2000));
+  check('No runtime errors on phone', M.errors.length === 0, M.errors.slice(0, 3).join(' | '));
+  await phoneCtx.close();
+
+  // ============================================================
   //  Server hardening (raw WebSocket clients)
   // ============================================================
   const raw = () => new Promise((res, rej) => { const w = new WebSocket(`ws://localhost:${PORT}/ws`); w.msgs = []; w.on('message', d => w.msgs.push(JSON.parse(d))); w.on('open', () => res(w)); w.on('error', rej); });
