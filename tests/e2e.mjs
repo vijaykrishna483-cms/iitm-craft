@@ -73,8 +73,8 @@ try {
     deer: iitm.deer.length, monkeys: iitm.monkeys.length,
     names: iitm.places().map(p => p.n),
   }));
-  check('All 85 campus places are placed', world.places === 85, `${world.places}`);
-  for (const n of ['Main Gate', 'Gajendra Circle', 'Central Library', 'Open Air Theatre', 'Himalaya Mess', 'Mandakini Hostel', 'IITM Research Park', 'Chemplast Cricket Ground'])
+  check('All 86 campus places are placed', world.places === 86, `${world.places}`);
+  for (const n of ['Usha Cafe', 'Main Gate', 'Gajendra Circle', 'Central Library', 'Open Air Theatre', 'Himalaya Mess', 'Mandakini Hostel', 'IITM Research Park', 'Chemplast Cricket Ground'])
     check(`Place exists: ${n}`, world.names.includes(n));
   check('E-buggies parked around campus', world.buggies >= 15, `${world.buggies}`);
   check('Bicycles at stands', world.cycles >= 60, `${world.cycles}`);
@@ -126,7 +126,7 @@ try {
   await sleep(500);
   check('Location card shows the current place', await until(async () => (await A.textContent('#pName')).includes('Gajendra Circle'), 3000), await A.textContent('#pName'));
   check('Discovery toast appears', await until(() => A.evaluate(() => iitm.toasts().includes('Gajendra Circle')), 3000));
-  check('Places counter increments', /^[2-9]\d*\/85$|^\d{2}\/85$/.test(await A.textContent('#cPlaces')), await A.textContent('#cPlaces'));
+  check('Places counter increments', /^[2-9]\d*\/86$|^\d{2}\/86$/.test(await A.textContent('#cPlaces')), await A.textContent('#cPlaces'));
 
   // campus map + fast travel
   await A.keyboard.press('KeyM');
