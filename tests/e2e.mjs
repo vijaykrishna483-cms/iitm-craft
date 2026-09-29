@@ -261,6 +261,29 @@ try {
   await A.evaluate(() => { iitm.setState('play'); document.getElementById('pause').classList.add('hidden'); });
   check('No runtime errors in single player', A.errors.length === 0, A.errors.slice(0, 3).join(' | '));
 
+  // getting out of water: fountain rim and lake bank
+  await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Gajendra Circle'); iitm.teleport(q.cx + 2.5, q.cz + 3.5); iitm.player.pos.set(q.cx + 2.5, 12, q.cz + 3.5); iitm.player.vel.set(0, 0, 0); iitm.look(-Math.PI / 2, -.2); });
+  await sleep(300);
+  const inFountain = await A.evaluate(() => iitm.blockInfo(iitm.player.pos.x, iitm.player.pos.y, iitm.player.pos.z).inWater);
+  await hold(A, 'KeyW', 2500);
+  check('Walking into the fountain rim climbs out of the water', inFountain && await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Gajendra Circle'); return !iitm.blockInfo(iitm.player.pos.x, iitm.player.pos.y, iitm.player.pos.z).inWater && iitm.player.pos.y >= 12.9 && Math.hypot(iitm.player.pos.x - q.cx - .5, iitm.player.pos.z - q.cz - .5) > 4.6; }),
+    `y=${(await pos(A)).y.toFixed(2)}`);
+  const lakeOut = await A.evaluate(() => {
+    const c = iitm.crocList()[0]; const [sx, sz] = c.shore[0];
+    // a lake tile right next to that bank tile
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1]].find(([dx, dz]) => iitm.blockInfo(sx + dx + .5, 11.5, sz + dz + .5).feet === 'Water');
+    iitm.crocList().forEach(k => { k.x += 40; });
+    iitm.player.pos.set(sx + dirs[0] + .5, 11.2, sz + dirs[1] + .5); iitm.player.vel.set(0, 0, 0);
+    iitm.look(Math.atan2(dirs[0], dirs[1]), -.2);
+    return true;
+  });
+  await hold(A, 'KeyW', 2500);
+  check('Walking into a lake bank climbs out of the water', lakeOut && await A.evaluate(() => !iitm.blockInfo(iitm.player.pos.x, iitm.player.pos.y, iitm.player.pos.z).inWater && iitm.player.pos.y >= 12.9), `y=${(await pos(A)).y.toFixed(2)}`);
+  await A.evaluate(() => { iitm.setState('paused'); document.getElementById('pause').classList.remove('hidden'); });
+  await A.click('#bUnstuck'); await sleep(400);
+  if (await A.evaluate(() => iitm.stateNow()) !== 'play') await A.evaluate(() => { iitm.setState('play'); document.getElementById('pause').classList.add('hidden'); });
+  check('Stuck button returns you to the Main Gate', await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Main Gate'); return Math.hypot(iitm.player.pos.x - q.cx, iitm.player.pos.z - q.cz) < 20; }));
+
   // ============================================================
   //  Multiplayer
   // ============================================================
@@ -326,6 +349,11 @@ try {
   check('Speaker gets a speech bubble over their head', await B.evaluate(() => [...iitm.net.peers.values()].some(p => p.name === 'Asha' && p.s.g.userData.bubble)));
   check('Your own message shows as You', await A.evaluate(() => document.getElementById('feedLog').textContent.includes('Youhello everyone')));
   check('Chat box closes after sending and typing did not move you', !(await A.isVisible('#sayBar')) && await A.evaluate(() => iitm.keys.size === 0));
+  // a paused player shows as away to others, and comes back when they play again
+  await B.evaluate(() => iitm.setState('paused'));
+  check('Paused players show as away', await until(() => A.evaluate(() => [...iitm.net.peers.values()].some(p => p.name === 'Ravi' && p.away)), 8000));
+  await B.evaluate(() => iitm.setState('play'));
+  check('Away clears when they play again', await until(() => A.evaluate(() => [...iitm.net.peers.values()].some(p => p.name === 'Ravi' && !p.away)), 5000));
 
   // vehicle occupancy
   const vid = await A.evaluate(() => {

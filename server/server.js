@@ -26,7 +26,9 @@ const num = (v, lo, hi) => (typeof v === 'number' && Number.isFinite(v) && v >= 
 const r2 = v => Math.round(v * 100) / 100;
 const send = (p, msg) => { if (p.ws.readyState === 1) p.ws.send(JSON.stringify(msg)); };
 const broadcast = (msg, except) => { const s = JSON.stringify(msg); for (const p of players.values()) if (p !== except && p.ws.readyState === 1) p.ws.send(s); };
-const pub = p => ({ id: p.id, name: p.name, kind: p.kind, x: p.x, y: p.y, z: p.z, f: p.f, a: p.a, v: p.v, vh: p.vh, st: p.seat });
+const AWAY_MS = 4000;           // no position update for this long = paused, in a menu or app in the background
+const isAway = p => (Date.now() - (p.seen || 0) > AWAY_MS ? 1 : 0);
+const pub = p => ({ id: p.id, name: p.name, kind: p.kind, x: p.x, y: p.y, z: p.z, f: p.f, a: p.a, v: p.v, vh: p.vh, st: p.seat, away: isAway(p) });
 // An e-buggy seats a driver plus up to 3 passengers; bicycles only a rider.
 const MAX_PASSENGERS = 3;
 const vehState = (vid, v, withPos) => ({ t: 'veh', vid, driver: v.driver, riders: v.riders, ...(withPos ? { x: r2(v.x), z: r2(v.z), h: r2(v.h) } : {}) });
@@ -139,6 +141,7 @@ wss.on('connection', ws => {
       case 's': {
         const x = num(m.x, -5, WORLD.x + 5), y = num(m.y, WORLD.yMin, WORLD.yMax), z = num(m.z, -5, WORLD.z + 5);
         if (x === null || y === null || z === null) return;
+        me.seen = Date.now();
         Object.assign(me, { x, y, z, f: num(m.f, -1e4, 1e4) ?? 0, a: ANIMS.has(m.a) ? m.a : 'walk', vh: num(m.vh, -1e4, 1e4) ?? 0 });
         if (!me.ready) { me.ready = true; broadcast({ t: 'add', p: pub(me) }, me); }
         return;
@@ -238,7 +241,7 @@ setInterval(() => {
   for (const p of players.values()) {
     const ps = [];
     for (const o of list) if (o !== p && Math.hypot(o.x - p.x, o.z - p.z) < VIEW_RANGE)
-      ps.push([o.id, r2(o.x), r2(o.y), r2(o.z), r2(o.f), o.a, o.v, r2(o.vh), o.seat]);
+      ps.push([o.id, r2(o.x), r2(o.y), r2(o.z), r2(o.f), o.a, o.v, r2(o.vh), o.seat, isAway(o)]);
     send(p, { t: 'snap', n: players.size, ps });
   }
 }, TICK_MS);

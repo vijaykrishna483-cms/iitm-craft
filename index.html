@@ -43,6 +43,8 @@
   #place .name{font:600 30px/1.1 var(--serif);text-shadow:0 2px 14px rgba(0,0,0,.45);transition:opacity .3s}
   #mode{position:absolute;right:20px;bottom:22px}
   label.field-label{display:block}
+  .linkish{margin-top:14px;background:none;border:0;padding:4px 0;color:var(--muted);font:500 13px var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  .linkish:hover{color:var(--cream)}
   /* nearby group chat */
   #feed{position:absolute;left:20px;bottom:112px;width:min(380px,44vw);display:flex;flex-direction:column;gap:6px;pointer-events:none}
   #feedLog{display:flex;flex-direction:column;gap:5px}
@@ -302,6 +304,7 @@
       <kbd>Esc</kbd><span>Pause</span><kbd>Enter</kbd><span>Type in chat</span>
     </div>
     <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
+    <button class="linkish" id="bUnstuck">Stuck? Go back to the Main Gate</button>
   </div>
 </div>
 
@@ -1804,16 +1807,20 @@ function updatePlayer(dt){
   const acc = Math.min(1, dt*(player.onGround || player.fly ? 12 : 5));
   v.x += (wx-v.x)*acc; v.z += (wz-v.z)*acc;
   if (player.fly) v.y += (((keys.has('Space')?1:0) - (keys.has('ShiftLeft')?1:0))*speed - v.y)*acc;
-  else if (inWater) { v.y -= 9*dt; if (keys.has('Space')) v.y = Math.min(v.y+32*dt, 3.8); v.y = Math.max(v.y,-3); }
+  else if (inWater) { v.y -= 9*dt; if (keys.has('Space')) v.y = Math.max(v.y, Math.min(v.y+32*dt, 3.8)); v.y = Math.max(v.y,-3); }
   else { v.y -= 26*dt; if (keys.has('Space') && player.onGround) v.y = 8.3; v.y = Math.max(v.y,-40); }
   const steps = Math.ceil(dt/.016), h = dt/steps;
   for (let s=0;s<steps;s++) {
     let blocked = false;
     p.x += v.x*h; if (collides(p)) { p.x -= v.x*h; blocked = true; }
     p.z += v.z*h; if (collides(p)) { p.z -= v.z*h; blocked = true; }
-    if (blocked && player.onGround && !player.fly && (f||r)) {
-      p.y += 1.05; const free = !collides({ x:p.x+v.x*.05, y:p.y, z:p.z+v.z*.05 }); p.y -= 1.05;
-      if (free) v.y = 8.3;
+    // step up one block on land; from water, climb out up a bank or rim of up to two blocks
+    const wet = inWater || get(Math.floor(p.x), Math.floor(p.y+.05), Math.floor(p.z)) === WATER;
+    if (blocked && !player.fly && (f||r) && (player.onGround || wet)) {
+      for (const up of wet ? [1.05, 2.05] : [1.05]) {
+        p.y += up; const free = !collides({ x:p.x+v.x*.05, y:p.y, z:p.z+v.z*.05 }); p.y -= up;
+        if (free) { v.y = Math.max(v.y, up > 1.5 ? 10.8 : 8.3); break; }
+      }
     }
     p.y += v.y*h;
     if (collides(p)) { p.y -= v.y*h; v.y = 0; }
@@ -2235,13 +2242,17 @@ function onNet(m){
 }
 
 // ---------- remote students ----------
-function nameTag(name){
-  const t = canvasTex(512,96,g => {
+function tagTex(name, away){
+  return canvasTex(512,96,g => {
+    const label = away ? `${name} · away` : name;
     g.font = `600 44px ${SANS}`;
-    const w = Math.min(500, g.measureText(name).width + 48), x0 = (512-w)/2;
-    g.fillStyle = 'rgba(15,50,54,.88)'; g.beginPath(); g.roundRect(x0,10,w,76,38); g.fill();
-    g.fillStyle = '#f3ead8'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(name, 256, 50);
+    const w = Math.min(500, g.measureText(label).width + 48), x0 = (512-w)/2;
+    g.fillStyle = away ? 'rgba(60,70,72,.8)' : 'rgba(15,50,54,.88)'; g.beginPath(); g.roundRect(x0,10,w,76,38); g.fill();
+    g.fillStyle = away ? '#b9c4c1' : '#f3ead8'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(label, 256, 50);
   });
+}
+function nameTag(name){
+  const t = tagTex(name, false);
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, transparent:true, depthWrite:false }));
   s.scale.set(2.2, .41, 1); s.position.set(0, 2.05, 0); s.renderOrder = 6;
   return s;
@@ -2253,10 +2264,14 @@ function upsertPeer(d){
     s.g.add(tag); scene.add(s.g);
     net.peers.set(d.id, { id:d.id, name:d.name, kind:d.kind, s, tag, x:d.x, y:d.y, z:d.z, f:d.f, tx:d.x, ty:d.y, tz:d.z, tf:d.f, vh:d.vh||0, a:d.a||'walk', v:-1, vehicle:null, speed:0 });
   }
-  snapPeer([d.id, d.x, d.y, d.z, d.f, d.a, d.v, d.vh, d.st || 0]);
+  snapPeer([d.id, d.x, d.y, d.z, d.f, d.a, d.v, d.vh, d.st || 0, d.away || 0]);
 }
-function snapPeer([id,x,y,z,f,a,v,vh,st=0]){
+function snapPeer([id,x,y,z,f,a,v,vh,st=0,away=0]){
   const p = net.peers.get(id); if (!p) return;
+  if (!!away !== !!p.away) {
+    p.away = !!away; p.awaySince = performance.now();
+    const old = p.tag.material.map; p.tag.material.map = tagTex(p.name, p.away); old.dispose();
+  }
   if (Math.hypot(x-p.x, z-p.z) > 30) { p.x = x; p.y = y; p.z = z; }
   Object.assign(p, { tx:x, ty:y, tz:z, tf:f, a, vh });
   if (v !== p.v || st !== p.seat) {
@@ -2321,7 +2336,7 @@ function updatePeers(dt){
       if (v.kind === 'cycle') animateStudent(p.s, dt, p.speed, 'cycle');
     } else {
       p.f += angDiff(p.tf, p.f)*k;
-      p.s.g.position.set(p.x, p.y, p.z); p.s.g.rotation.y = p.f; p.s.g.visible = d < 200;
+      p.s.g.position.set(p.x, p.y, p.z); p.s.g.rotation.y = p.f; p.s.g.visible = d < 200 && !(p.away && performance.now() - p.awaySince > 60000);   // long-away players are hidden until they return
       animateStudent(p.s, dt, p.speed, p.a === 'fly' ? 'fly' : p.a === 'air' ? 'air' : 'walk');
     }
   }
@@ -2486,6 +2501,7 @@ document.querySelectorAll('.who').forEach(b => b.onclick = () => {
 });
 $('bStart').onclick = () => { if (state !== 'title') return; begin(chosen, playerName()); lock(); };
 $('bResume').onclick = lock;
+$('bUnstuck').onclick = () => { respawn(); lock(); };
 function openFeedback(){
   if (document.pointerLockElement) document.exitPointerLock();
   state = 'feedback'; show('pause', false); show('mapview', false); show('feedback', true);
@@ -2759,7 +2775,8 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   teleport, places: () => placeList, player, buggies, deer, monkeys, openMap, begin, enterBuggy, exitBuggy, keys, net, requestChat, respondChat, closeChat,
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
-  stateNow: () => state, crocList: () => crocs, crocs: () => crocs.map(c => ({ x:c.x, z:c.z, state:c.state, wet:isLake(Math.floor(c.x), Math.floor(c.z)) })), ridingNow: () => riding && { vid: riding.v.vid, seat: riding.seat }, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT, setDay: t => { dayT = t; },
+  stateNow: () => state, blockInfo: (x,y,z) => { const p = { x, y, z }; const at = (dy) => DEF[get(Math.floor(x), Math.floor(y+dy), Math.floor(z))]?.n || 'air';
+    return { feet: at(0), below: at(-.5), body: at(.9), inWater: at(.4) === 'Water', insideSolid: collides(p) }; }, crocList: () => crocs, crocs: () => crocs.map(c => ({ x:c.x, z:c.z, state:c.state, wet:isLake(Math.floor(c.x), Math.floor(c.z)) })), ridingNow: () => riding && { vid: riding.v.vid, seat: riding.seat }, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT, setDay: t => { dayT = t; },
 };
 </script>
 </body>
