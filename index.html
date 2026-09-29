@@ -49,6 +49,7 @@
   .screen{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   body.touch input,body.touch select,body.touch textarea{font-size:16px!important}
   @media (max-width:560px){ .prof .profgrid{grid-template-columns:1fr} .prof .profgrid label{flex-direction:row;align-items:center;justify-content:space-between;gap:10px} .prof .profgrid select{flex:1;max-width:62%} }
+  .prof[hidden]{display:none!important}
   .prof{margin:0 0 16px;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
   .prof summary{cursor:pointer;font:600 13px var(--sans);color:var(--cream)}
   .prof summary span{font-weight:400;color:var(--muted);margin-left:6px}
@@ -316,7 +317,7 @@
     <p>Roam around the campus, meet new people, strike up a conversation and make new friends. Hop on an e-buggy, say hi to the deer and discover every corner of IIT Madras.</p>
     <div class="field-label">Your name</div>
     <input id="nameInput" class="text" maxlength="16" placeholder="What should others call you?" autocomplete="off">
-    <details class="prof"><summary>About you <span>optional · shown to people you meet</span></summary>
+    <details class="prof" hidden><summary>About you <span>optional · shown to people you meet</span></summary>
       <div class="profgrid"><label>Hostel<select id="prof_h"></select></label><label>Year<select id="prof_y"></select></label></div>
       <div class="field-label">Department</div><div id="prof_d" class="tags codes"></div>
       <div class="field-label">Interests (up to 3)</div><div id="prof_i" class="tags"></div>
