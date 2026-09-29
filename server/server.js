@@ -3,6 +3,7 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { WebSocketServer } from 'ws';
+import { createActivities, cleanProfile } from './activities.js';
 
 const PORT = Number(process.env.PORT) || 8787;
 const MAX_PLAYERS = Number(process.env.MAX_PLAYERS) || 150;
@@ -26,9 +27,11 @@ const num = (v, lo, hi) => (typeof v === 'number' && Number.isFinite(v) && v >= 
 const r2 = v => Math.round(v * 100) / 100;
 const send = (p, msg) => { if (p.ws.readyState === 1) p.ws.send(JSON.stringify(msg)); };
 const broadcast = (msg, except) => { const s = JSON.stringify(msg); for (const p of players.values()) if (p !== except && p.ws.readyState === 1) p.ws.send(s); };
+// send to every ready player within range of p (default: nearby chat range)
+const near = (p, msg, range = SAY_RANGE) => { const s = JSON.stringify(msg); for (const o of players.values()) if (o !== p && o.ready && o.ws.readyState === 1 && Math.hypot(o.x - p.x, o.z - p.z) < range) o.ws.send(s); };
 const AWAY_MS = 4000;           // no position update for this long = paused, in a menu or app in the background
 const isAway = p => (Date.now() - (p.seen || 0) > AWAY_MS ? 1 : 0);
-const pub = p => ({ id: p.id, name: p.name, kind: p.kind, x: p.x, y: p.y, z: p.z, f: p.f, a: p.a, v: p.v, vh: p.vh, st: p.seat, away: isAway(p) });
+const pub = p => ({ id: p.id, name: p.name, kind: p.kind, prof: p.prof, x: p.x, y: p.y, z: p.z, f: p.f, a: p.a, v: p.v, vh: p.vh, st: p.seat, away: isAway(p) });
 // An e-buggy seats a driver plus up to 3 passengers; bicycles only a rider.
 const MAX_PASSENGERS = 3;
 const vehState = (vid, v, withPos) => ({ t: 'veh', vid, driver: v.driver, riders: v.riders, ...(withPos ? { x: r2(v.x), z: r2(v.z), h: r2(v.h) } : {}) });
@@ -88,6 +91,8 @@ async function handleFeedback(req, res){
   json(res, 200, { ok: true });
 }
 
+const act = createActivities({ players, send, broadcast, near, clean, num });
+
 // ---------- HTTP ----------
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost');
@@ -129,14 +134,15 @@ wss.on('connection', ws => {
       if (m.t !== 'join') return;
       if (players.size >= MAX_PLAYERS) { ws.send(JSON.stringify({ t: 'full' })); return ws.close(); }
       me = { ws, id: nextId++, name: cleanName(m.name) || 'Student', kind: m.kind === 'girl' ? 'girl' : 'boy',
-        x: 0, y: 0, z: 0, f: 0, a: 'walk', v: -1, seat: 0, vh: 0, chatWith: 0, pendingFrom: new Map(), lastReq: 0, lastChat: 0, lastSay: 0, ready: false };
+        prof: cleanProfile(m.prof), x: 0, y: 0, z: 0, f: 0, a: 'walk', v: -1, seat: 0, vh: 0, chatWith: 0, pendingFrom: new Map(), lastReq: 0, lastChat: 0, lastSay: 0, ready: false };
       players.set(me.id, me);
       send(me, { t: 'welcome', id: me.id, online: players.size,
         players: [...players.values()].filter(p => p !== me && p.ready).map(pub),
-        vehicles: [...vehicles].map(([id, v]) => [id, r2(v.x), r2(v.z), r2(v.h), v.driver, v.riders]) });
+        vehicles: [...vehicles].map(([id, v]) => [id, r2(v.x), r2(v.z), r2(v.h), v.driver, v.riders]), ...act.welcome() });
       return;
     }
 
+    if (act.handle(me, m)) return;
     switch (m.t) {
       case 's': {
         const x = num(m.x, -5, WORLD.x + 5), y = num(m.y, WORLD.yMin, WORLD.yMax), z = num(m.z, -5, WORLD.z + 5);
@@ -224,6 +230,7 @@ wss.on('connection', ws => {
     if (!me) return;
     endChat(me);
     leaveVehicle(me);
+    act.leave(me);
     players.delete(me.id);
     broadcast({ t: 'del', id: me.id });
   });
