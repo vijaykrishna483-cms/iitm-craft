@@ -147,7 +147,9 @@ wss.on('connection', ws => {
       if (m.t !== 'join') return;
       if (players.size >= MAX_PLAYERS) { ws.send(JSON.stringify({ t: 'full' })); return ws.close(); }
       me = { ws, id: nextId++, name: cleanName(m.name) || 'Student', kind: m.kind === 'girl' ? 'girl' : 'boy',
-        prof: cleanProfile(m.prof), x: 0, y: 0, z: 0, f: 0, a: 'walk', v: -1, seat: 0, vh: 0, chatWith: 0, pendingFrom: new Map(), lastReq: 0, lastChat: 0, lastSay: 0, ready: false };
+        prof: cleanProfile(m.prof), x: 0, y: 0, z: 0, f: 0, a: 'walk', v: -1, seat: 0, vh: 0, chatWith: 0, pendingFrom: new Map(), lastReq: 0, lastChat: 0, lastSay: 0, ready: false,
+        seen: Date.now() };   // count them as active from the moment they join, or the idle sweep
+                              // could take the seat of someone who has not sent a position yet
       players.set(me.id, me);
       send(me, { t: 'welcome', id: me.id, online: players.size,
         players: [...players.values()].filter(p => p !== me && p.ready).map(pub),
