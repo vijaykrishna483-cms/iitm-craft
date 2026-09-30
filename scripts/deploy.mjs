@@ -45,6 +45,14 @@ const before = await live();
 console.log(`live    ${before ? `${before.commit}, up ${before.uptime}s, ${before.online} online` : 'could not read /api/version (old build, or the site is down)'}`);
 
 if (flag('--check')) process.exit(0);
+// Already serving this commit? Firing the hook would restart the server, and every player online
+// would take the hit, for nothing.
+if (before && before.commit === head && !flag('--force')) {
+  console.log(`
+${head} is already live (up ${before.uptime}s). Nothing to deploy.`);
+  console.log('Use --force only if you really mean to restart the server for everyone on it.');
+  process.exit(0);
+}
 if (dirty) { console.error('\nCommit or stash your changes first — deploying would ship something you have not committed.'); process.exit(1); }
 
 // 1. Wait for a quiet moment, if asked.
