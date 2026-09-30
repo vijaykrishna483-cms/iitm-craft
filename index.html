@@ -2000,7 +2000,7 @@ function enterBuggy(b){
   $('mode').textContent = b.kind === 'cycle' ? 'Cycling' : b.kind === 'plane' ? 'Flying the plane' : 'Driving';
   if (b.kind === 'cycle') sfx.bell(); else sfx.start();
   if (b.kind === 'plane') show('planeCtl', true);
-  if (b.kind === 'plane') toast('Aerospace two-seater', 'You are the pilot', TOUCH ? 'Push the stick forward: at full speed it takes off by itself. Up / Down to change height, stick to turn.' : 'Hold W: at full speed it takes off by itself. Space / Shift (or the Up / Down buttons) to climb and descend, A/D to turn.');
+  if (b.kind === 'plane') toast('Aerospace two-seater', 'You are the pilot', TOUCH ? 'Hold Up to take off down the strip. Up / Down to change height, stick to turn.' : 'Hold Space to take off down the strip. Space / Shift to climb and descend, W/S for speed, A/D to turn.');
 }
 function enterSeat(b){
   const seat = freeSeat(b); if (seat < 0) return;
@@ -2058,11 +2058,16 @@ function updateDriving(dt){
   const n = Math.ceil(dt/.03);
   for (let i=0;i<n && driving;i++) driveStep(dt/n);
 }
+const PLANE_CEIL = G+40;   // server accepts y up to 80
 function flyStep(dt){
   const c = driving, V = VSPEC.plane;
   const clamp1 = v => Math.max(-1, Math.min(1, v));
-  const thr = clamp1((keys.has('KeyW')?1:0) - (keys.has('KeyS')?1:0) + joy.f), st = clamp1((keys.has('KeyA')?1:0) - (keys.has('KeyD')?1:0) - joy.r);
+  let thr = clamp1((keys.has('KeyW')?1:0) - (keys.has('KeyS')?1:0) + joy.f);
+  const st = clamp1((keys.has('KeyA')?1:0) - (keys.has('KeyD')?1:0) - joy.r);
   const up = keys.has('Space'), down = keys.has('ShiftLeft') || keys.has('ShiftRight');
+  // Up on the ground means "take off": full throttle down the strip. In the air it never lets the plane stall.
+  if (up && !c.air) thr = Math.max(thr, 1);
+  if (up && c.air) c.speed = Math.max(c.speed, V.lift);
   c.steer += (st*.6 - c.steer)*Math.min(1,dt*4);
   if (thr) c.speed += thr*(thr > 0 ? V.acc : 8)*dt; else c.speed *= Math.max(0, 1 - dt*(c.air ? .05 : .9));
   c.speed = Math.max(c.air ? 0 : -3, Math.min(V.max, c.speed));
@@ -2099,7 +2104,7 @@ function flyStep(dt){
       if (!c.warned || performance.now() - c.warned > 4000) { c.warned = performance.now(); toast('Aerospace two-seater', 'Pull up!', 'You clipped a building. Climb higher before flying over it.'); }
     } else { c.x = nx; c.z = nz; }
     const [under, ub] = skyGround(c.x, c.z);
-    let ny = Math.min(G+30, c.y + c.vy*dt);
+    let ny = Math.min(PLANE_CEIL, c.y + c.vy*dt);
     if (ny <= under) {
       if (ub === WATER) { ny = under + .4; c.vy = 3; }
       else { ny = under; c.air = false; c.vy = 0; c.speed = Math.min(c.speed, V.lift*.8); }
@@ -2110,7 +2115,7 @@ function flyStep(dt){
   c.g.rotation.x = c.air ? Math.max(-.4, Math.min(.4, -c.vy*.05)) : 0;
   c.g.rotation.z = c.air ? -c.steer*.8 : 0;
   c.prop.rotation.z += (4 + c.speed*1.5)*dt;
-  const alt = c.air ? Math.round(c.y - skyGround(c.x, c.z)[0]) : 0, altTxt = c.air ? `Height ${alt} m` : c.speed >= V.lift*.6 ? 'Taking off…' : 'On the ground';
+  const alt = c.air ? Math.round(c.y - skyGround(c.x, c.z)[0]) : 0, altTxt = c.air ? (c.y >= PLANE_CEIL - .2 ? `Max height · ${alt} m` : `Height ${alt} m`) : c.speed >= V.lift*.6 ? 'Taking off…' : 'On the ground';
   if ($('pAlt').textContent !== altTxt) $('pAlt').textContent = altTxt;
   c.wheels.forEach((w,i) => { if (!c.air) w.spin.rotation.x += c.speed*dt/V.r; if (i === 0) w.steer.rotation.y = -c.steer*.6; });
   player.pos.set(c.x,c.y,c.z);
