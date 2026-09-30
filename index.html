@@ -574,7 +574,7 @@ const PLACES = [
   { n:'Institute Hospital', z:AZ, at:[2092,3916], k:'bld', s:[12,8,2], w:CREAM },
   { n:'Campus Café & Food Court', z:AZ, at:[1902,4007], k:'bld', s:[9,6,1], w:CREAM, r:ROOF },
   { n:'New Academic Complex', z:AZ, at:[1815,3878], k:'bld', s:[14,9,4], w:CONCRETE },
-  { n:'Aerospace Engineering', z:AZ, at:[1437,4091], k:'bld', s:[12,8,3], w:CREAM },
+  { n:'Aerospace Engineering', z:AZ, at:[1437,4091], k:'bld', s:[12,8,3], w:CREAM, f:'A two-seater trainer plane is parked on the road out front. Take a friend flying!' },
   { n:'Chemical Engineering', z:AZ, at:[1510,4311], k:'bld', s:[12,8,3], w:BRICK },
   { n:'Metallurgical & Materials Engineering', z:AZ, at:[1632,4380], k:'bld', s:[10,7,3], w:CREAM },
   { n:'New Academic Complex II', z:AZ, at:[1269,4307], k:'bld', s:[12,8,4], w:CONCRETE },
@@ -591,7 +591,7 @@ const PLACES = [
   { n:'Materials Science Research Centre', z:AZ, at:[2053,4674], k:'bld', s:[8,6,2], w:CONCRETE },
   { n:'Applied Chemistry Block', z:AZ, at:[2205,5023], k:'bld', s:[10,7,2], w:CREAM },
   { n:'Chemplast Cricket Ground', z:AZ, at:[985,4955], k:'cricket', major:1, f:'The IIT–Chemplast cricket ground.' },
-  { n:'Football Ground', z:AZ, at:[1197,4989], k:'football', s:[15,23], f:'Kick-about any time: walk into the ball to dribble, press E to shoot. First to 5 wins.' },
+  { n:'Football Ground', z:AZ, at:[1197,4989], k:'football', s:[15,23], f:'Kick-about any time: walk into the ball to dribble, press E to shoot (R when E shows Chat). First to 5 wins.' },
   { n:'Hockey Ground', z:AZ, at:[1463,4981], k:'field', s:[11,15] },
   { n:'Basketball & Tennis Courts', z:AZ, at:[2013,5128], k:'courts', s:[12,8] },
   { n:'Velachery Gate', z:AZ, at:[300,5095], k:'gate', f:'The south-west entrance, towards Velachery.' },
@@ -1526,14 +1526,57 @@ function spawnBuggies(){
   }
 }
 
+// ---------- Aerospace two-seater ----------
+// A small high-wing trainer parked on the road south of the Aerospace block. Pilot in front, one passenger behind.
+function makePlane(){
+  const g = new THREE.Group(); g.rotation.order = 'YXZ';
+  const W = 0xf2efe6, R = 0xc0392b, D = 0x2d3a3a, M = 0x9aa0a4, GL = 0xcfe6ee;
+  g.add(model([
+    part(1.1,.62,4.1,W,0,.78,-.15), part(1.12,.1,4.12,R,0,.6,-.15), part(.9,.5,.9,W,0,.95,2.2), part(.5,.4,.5,M,0,.95,2.7),
+    part(.12,.9,1.9,W,-.5,1.3,.15), part(.12,.9,1.9,W,.5,1.3,.15), part(1.1,.9,.1,GL,0,1.35,1.2,-.35),
+    part(1.1,.5,1.2,W,0,1.3,-1.6,.25), part(.8,.36,1.1,W,0,1.05,-2.6),
+    part(7.2,.12,1.3,W,0,2.3,.35), part(7.24,.13,.3,R,0,2.3,.95), part(.6,.12,1.34,R,-3.35,2.3,.35), part(.6,.12,1.34,R,3.35,2.3,.35),
+    part(.06,.06,1.3,M,-1.5,1.8,.4,0,0,.78), part(.06,.06,1.3,M,1.5,1.8,.4,0,0,-.78),
+    part(.08,1.2,.08,M,-.56,1.75,1.1), part(.08,1.2,.08,M,.56,1.75,1.1), part(.08,1.2,.08,M,-.56,1.75,-.5), part(.08,1.2,.08,M,.56,1.75,-.5),
+    part(2.6,.1,.8,W,0,1.25,-2.95), part(.1,1.1,.9,W,0,1.7,-2.95), part(.12,.5,.5,R,0,2.1,-3.1),
+    part(.08,.5,.08,D,-.75,.35,.9,0,0,.5), part(.08,.5,.08,D,.75,.35,.9,0,0,-.5),
+    part(.36,.05,.2,D,0,.28,.55), part(.36,.05,.2,D,0,.28,-.4),
+  ]));
+  const wheels = [];
+  for (const [x,y,z,r] of [[0,.14,-2.9,.14],[-.95,.28,.9,.28],[.95,.28,.9,.28]]) {
+    const steer = new THREE.Group(); steer.position.set(x,y,z); g.add(steer);
+    const spin = new THREE.Group(); steer.add(spin);
+    const m = new THREE.Mesh(wheelGeo, wheelMat); m.rotation.z = Math.PI/2; m.scale.set(r/.3, .8, r/.3); spin.add(m);
+    wheels.push({ steer, spin });
+  }
+  const prop = new THREE.Group(); prop.position.set(0,.95,2.98); g.add(prop);
+  prop.add(new THREE.Mesh(new THREE.BoxGeometry(.14,1.9,.05), new THREE.MeshLambertMaterial({ color:0x222222 })));
+  return { g, wheels, prop };
+}
+function spawnPlane(){
+  const p = place('Aerospace Engineering'); if (!p || !p.box) return;
+  const m = makePlane(), x = p.box[0] - 5.5, z = p.box[3] + 7;
+  const v = { ...m, kind:'plane', x, z, y:G+1, heading:Math.PI/2, speed:0, steer:0, air:false, vy:0 };
+  v.g.position.set(v.x, v.y, v.z); v.g.rotation.y = v.heading; scene.add(v.g); buggies.push(v);
+}
+// Highest surface under (x,z), for flying: [top y, block]. Tree canopies don't count, so the plane can always come down.
+function skyGround(x, z){
+  const xi = Math.floor(x), zi = Math.floor(z);
+  if (xi<2 || zi<2 || xi>=WX-2 || zi>=WZ-2) return [WH, 0];
+  for (let y=WH-1; y>=0; y--) { const b = get(xi,y,zi); if (b && b !== LEAVES) return [y+1, b]; }
+  return [G+1, 0];
+}
+
 // Seat 0 is the driver; e-buggies also have a front passenger and a middle bench for two.
 const BUGGY_SEATS = [[-.34,.36,.5], [.34,.36,.5], [-.34,.36,-.4], [.34,.36,-.4]];
-const passengerSeats = v => v.kind === 'buggy' ? BUGGY_SEATS.length - 1 : 0;
-const seatPos = (v, seat) => seat ? BUGGY_SEATS[seat] : VSPEC[v.kind].seat;
+const PLANE_SEATS = [[0,.3,.55], [0,.3,-.45]];
+const passengerSeats = v => v.kind === 'buggy' ? BUGGY_SEATS.length - 1 : v.kind === 'plane' ? 1 : 0;
+const seatPos = (v, seat) => seat ? (v.kind === 'plane' ? PLANE_SEATS : BUGGY_SEATS)[seat] : VSPEC[v.kind].seat;
 const freeSeat = v => { for (let i=1; i<=passengerSeats(v); i++) if (!v.riders[i-1]) return i; return -1; };
 const VSPEC = {
   buggy: { max:12.5, acc:6.5, turn:.38, lat:.72, lon:1.45, seat:[-.34,.36,.5], pose:'sit', cam:3, r:.3, prompt:'Drive the e-buggy' },
   cycle: { max:8.5, acc:5, turn:.62, lat:.18, lon:.75, seat:[0,.46,-.2], pose:'cycle', cam:.8, r:.34, prompt:'Ride the bicycle' },
+  plane: { max:26, acc:5, turn:.3, lat:.8, lon:1.6, seat:[0,.3,.55], pose:'sit', cam:5, r:.28, lift:13, prompt:'Fly the plane' },
 };
 const CYCLE_COLORS = [0x1f2a33, 0xb23a3a, 0x2f6db3, 0x2f7a4f, 0x6b6b6b, 0xd08a2a];
 const cycleWheelGeo = mergeGeometries([
@@ -1929,8 +1972,9 @@ function enterBuggy(b){
   b.g.add(student.g); student.g.position.set(...V.seat); student.g.rotation.set(0,0,0);
   animateStudent(student, 0, 0, V.pose);
   lastMouse = 0;
-  $('mode').textContent = b.kind === 'cycle' ? 'Cycling' : 'Driving';
-  if (b.kind === 'buggy') sfx.start(); else sfx.bell();
+  $('mode').textContent = b.kind === 'cycle' ? 'Cycling' : b.kind === 'plane' ? 'Flying the plane' : 'Driving';
+  if (b.kind === 'cycle') sfx.bell(); else sfx.start();
+  if (b.kind === 'plane') toast('Aerospace two-seater', 'You are the pilot', TOUCH ? 'Push the stick forward to speed up, then hold Climb. Dive to come down. A friend can hop in the back.' : 'W to speed up, then hold Space to climb. A/D to turn, Shift to descend. Land to get out. A friend can hop in the back.');
 }
 function enterSeat(b){
   const seat = freeSeat(b); if (seat < 0) return;
@@ -1943,6 +1987,7 @@ function enterSeat(b){
 }
 function leaveSeat(rejected){
   const r = riding; if (!r) return;
+  if (!rejected && r.v.air) return toast('Aerospace two-seater', 'Still in the air', 'Wait for the pilot to land before getting out.');
   const spot = exitSpot(r.v);
   if (r.v.riders[r.seat-1] === (net.id || -1)) r.v.riders[r.seat-1] = 0;
   riding = null;
@@ -1954,6 +1999,11 @@ function leaveSeat(rejected){
 }
 function exitBuggy(force, rejected){
   const b = driving; if (!b) return;
+  if (!force && !rejected && b.air) return toast('Aerospace two-seater', 'Land first', TOUCH ? 'Hold Dive to come down, then get out.' : 'Hold Shift to come down, then get out.');
+  if (b.kind === 'plane') {
+    if (b.air) { b.y = skyGround(b.x, b.z)[0]; b.air = false; b.vy = 0; b.g.position.y = b.y; }
+    b.g.rotation.set(0, b.heading, 0);
+  }
   const spot = exitSpot(b);
   b.speed = 0; driving = null;
   if (!rejected) nsend({ t:'exit', x:b.x, z:b.z, h:b.heading });
@@ -1981,7 +2031,59 @@ function updateDriving(dt){
   const n = Math.ceil(dt/.03);
   for (let i=0;i<n && driving;i++) driveStep(dt/n);
 }
+function flyStep(dt){
+  const c = driving, V = VSPEC.plane;
+  const clamp1 = v => Math.max(-1, Math.min(1, v));
+  const thr = clamp1((keys.has('KeyW')?1:0) - (keys.has('KeyS')?1:0) + joy.f), st = clamp1((keys.has('KeyA')?1:0) - (keys.has('KeyD')?1:0) - joy.r);
+  const up = keys.has('Space'), down = keys.has('ShiftLeft') || keys.has('ShiftRight');
+  c.steer += (st*.6 - c.steer)*Math.min(1,dt*4);
+  if (thr) c.speed += thr*(thr > 0 ? V.acc : 8)*dt; else c.speed *= Math.max(0, 1 - dt*(c.air ? .05 : .9));
+  c.speed = Math.max(c.air ? 0 : -3, Math.min(V.max, c.speed));
+  if (!c.air) {
+    c.heading += c.steer*c.speed*dt*V.turn;
+    const nx = c.x + Math.sin(c.heading)*c.speed*dt, nz = c.z + Math.cos(c.heading)*c.speed*dt;
+    const sh = Math.sin(c.heading), ch = Math.cos(c.heading);
+    let ok = true, sum = 0;
+    for (const [lat,lon] of [[-V.lat,V.lon],[V.lat,V.lon],[-V.lat,-V.lon],[V.lat,-V.lon]]) {
+      const gy = carGround(nx + ch*lat + sh*lon, nz - sh*lat + ch*lon, c.y);
+      if (gy < 0 || gy - c.y > 1.1) { ok = false; break; }
+      sum += gy;
+    }
+    if (ok) { c.x = nx; c.z = nz; c.y += (sum/4 - c.y)*Math.min(1,dt*12); } else c.speed *= -.2;
+    if (up && c.speed >= V.lift) { c.air = true; c.vy = 2.5; }
+    checkStuck(c, thr);
+  } else {
+    // lift fades below take-off speed, so a slow plane sinks
+    const lift = Math.max(0, Math.min(1, (c.speed - V.lift*.6)/(V.lift*.4)));
+    const want = (up ? 7 : down ? -8 : 0)*lift - (1-lift)*6;
+    c.vy += (want - c.vy)*Math.min(1, dt*2);
+    c.heading += c.steer*dt*1.3;
+    let nx = c.x + Math.sin(c.heading)*c.speed*dt, nz = c.z + Math.cos(c.heading)*c.speed*dt;
+    // keep inside the campus: turn back at the edge
+    if (nx < 8 || nz < 8 || nx > WX-8 || nz > WZ-8) { c.heading += Math.PI*dt*1.5; nx = Math.max(8, Math.min(WX-8, nx)); nz = Math.max(8, Math.min(WZ-8, nz)); }
+    const [ahead] = skyGround(nx + Math.sin(c.heading)*2.8, nz + Math.cos(c.heading)*2.8);
+    if (ahead - c.y > 1.2) {
+      // about to fly into a building or tree: bounce off and pull up
+      c.speed *= .45; c.vy = 4;
+      if (!c.warned || performance.now() - c.warned > 4000) { c.warned = performance.now(); toast('Aerospace two-seater', 'Pull up!', 'You clipped a building. Climb higher before flying over it.'); }
+    } else { c.x = nx; c.z = nz; }
+    const [under, ub] = skyGround(c.x, c.z);
+    let ny = Math.min(G+30, c.y + c.vy*dt);
+    if (ny <= under) {
+      if (ub === WATER) { ny = under + .4; c.vy = 3; }
+      else { ny = under; c.air = false; c.vy = 0; c.speed = Math.min(c.speed, V.lift*.8); }
+    }
+    c.y = ny;
+  }
+  c.g.position.set(c.x,c.y,c.z); c.g.rotation.y = c.heading;
+  c.g.rotation.x = c.air ? Math.max(-.4, Math.min(.4, -c.vy*.05)) : 0;
+  c.g.rotation.z = c.air ? -c.steer*.8 : 0;
+  c.prop.rotation.z += (4 + c.speed*1.5)*dt;
+  c.wheels.forEach((w,i) => { if (!c.air) w.spin.rotation.x += c.speed*dt/V.r; if (i === 0) w.steer.rotation.y = -c.steer*.6; });
+  player.pos.set(c.x,c.y,c.z);
+}
 function driveStep(dt){
+  if (driving.kind === 'plane') return flyStep(dt);
   const c = driving, V = VSPEC[c.kind];
   const clamp1 = v => Math.max(-1, Math.min(1, v));
   const thr = clamp1((keys.has('KeyW')?1:0) - (keys.has('KeyS')?1:0) + joy.f), st = clamp1((keys.has('KeyA')?1:0) - (keys.has('KeyD')?1:0) - joy.r);
@@ -2000,11 +2102,33 @@ function driveStep(dt){
   }
   if (ok) { c.x = nx; c.z = nz; c.y += (sum/4 - c.y)*Math.min(1,dt*12); }
   else c.speed *= -.2;
+  // Wedged (e.g. up on a planter between walls): throttle held but no real progress for 2.5 s,
+  // so hop the vehicle onto the nearest open road.
+  checkStuck(c, thr);
   c.g.position.set(c.x,c.y,c.z); c.g.rotation.y = c.heading;
   c.g.rotation.z = -c.steer*Math.min(1,Math.abs(c.speed)/V.max)*(c.kind === 'cycle' ? .35 : .06);
   c.wheels.forEach((w,i) => { w.spin.rotation.x += c.speed*dt/V.r; if (i === 0 || (c.kind === 'buggy' && i === 1)) w.steer.rotation.y = c.steer*.9; });
   if (c.kind === 'cycle') animateStudent(student, dt, Math.abs(c.speed), 'cycle');
   player.pos.set(c.x,c.y,c.z);
+}
+
+function checkStuck(c, thr){
+  const now = performance.now();
+  if (!thr || c.air || !c.probe || Math.hypot(c.x - c.probe.x, c.z - c.probe.z) > .8) c.probe = { x:c.x, z:c.z, t:now };
+  else if (now - c.probe.t > 2500) { c.probe = null; unstickVehicle(c); }
+}
+function unstickVehicle(c){
+  const cx = Math.floor(c.x), cz = Math.floor(c.z);
+  let spot = null;
+  // nearest road first; open flat ground if there is no road close by
+  for (const ok of [(x,z) => get(x,G,z) === ROAD, () => true]) for (let r=3; r<=90 && !spot; r++) for (let i=0, n=Math.max(12, r*6); i<n && !spot; i++) {
+    const a = i/n*Math.PI*2, x = Math.floor(cx+Math.cos(a)*r), z = Math.floor(cz+Math.sin(a)*r);
+    if (ok(x,z) && flatSpot(x,z)) spot = [x,z];
+  }
+  if (!spot) return;
+  c.x = spot[0]+.5; c.z = spot[1]+.5; c.y = G+1; c.speed = 0;
+  if (driving === c) player.pos.set(c.x,c.y,c.z);
+  toast('Vehicles', 'Back on the road', 'Your vehicle was stuck, so we moved it to the nearest road.');
 }
 
 // ============================================================
@@ -2049,15 +2173,17 @@ function findFocus(){
   };
   for (const b of buggies) {
     if (b.kind === 'cycle') { if (!b.remote) consider('drive', b, 2, VSPEC.cycle.prompt); continue; }
-    const seats = freeSeat(b) > 0;
-    if (!b.remote) consider('drive', b, 3.2, VSPEC.buggy.prompt, 0, seats ? 'Sit in' : null);   // free: drive, or just sit
-    else if (seats) consider('ride', b, 3.2, 'Get in the e-buggy');                               // someone's driving: passenger only
+    const seats = freeSeat(b) > 0, pl = b.kind === 'plane', r = pl ? 4 : 3.2;
+    if (!b.remote) consider('drive', b, r, VSPEC[b.kind].prompt, 0, seats ? (pl ? 'Back seat' : 'Sit in') : null);   // free: drive, or just sit
+    else if (seats && !b.air) consider('ride', b, r, pl ? 'Get in the back seat' : 'Get in the e-buggy');           // someone's driving: passenger only
   }
   if (!net.chatWith) for (const p of net.peers.values()) if (!p.vehicle) consider('chat', p, 4, `Chat with ${p.name}`, -1.5);
   for (const d of deer) consider('deer', d, 5.5, d.greeted ? 'Pat the deer' : d.kind === 'buck' ? 'Say hi to the blackbuck' : 'Say hi to the spotted deer', .5);
   for (const m of monkeys) consider('monkey', m, 3.6, 'Wave at the monkey', .5);
   for (const c of crocs) consider('croc', c, 6, 'Mugger crocodile · keep your distance', 1);
   activityFocus(consider);
+  // Ball in reach but E went to something closer (usually "Chat" with a teammate): kick moves to R / the second button.
+  if (best && best.type !== 'kick' && !best.alt && fpitch && Math.hypot(fpitch.x0 + fbLocal.x - px, fpitch.z0 + fbLocal.z - pz) < 1.7) { best.alt = 'Kick the ball'; best.altKick = true; }
   return best;
 }
 const CROC_LINES = ['It stays perfectly still. Only the eyes follow you.','Mugger crocodiles can hold their breath for over an hour.','It opens its jaws to cool down. Best admired from here.','It slides a little closer to the water. Time to move on.'];
@@ -2151,7 +2277,7 @@ function updateLabels(){
     s.visible = true; s.material.opacity = c.a;
   }
   for (const g of signs) g.visible = Math.hypot(px-g.position.x, pz-g.position.z) < 90;
-  for (const b of buggies) b.g.visible = Math.hypot(px-b.x, pz-b.z) < (b.kind === 'cycle' ? 65 : 140);
+  for (const b of buggies) b.g.visible = Math.hypot(px-b.x, pz-b.z) < (b.kind === 'cycle' ? 65 : b.kind === 'plane' ? 320 : 140);
 }
 let promptText = '';
 function updatePrompt(){
@@ -2167,7 +2293,7 @@ function updatePrompt(){
 }
 let cardFor = null;
 function updateCard(){ const o = focus && focus.type === 'chat' ? focus.o : null; if (o !== cardFor) { cardFor = o; showProfileCard(o); } }
-function interactAlt(){ focus = findFocus(); if (focus && focus.alt && focus.type === 'drive') enterSeat(focus.o); }
+function interactAlt(){ focus = findFocus(); if (focus && focus.altKick) return kick(1, -Math.sin(yaw), -Math.cos(yaw)); if (focus && focus.alt && focus.type === 'drive') enterSeat(focus.o); }
 
 // ============================================================
 //  Campus map overlay
@@ -2194,6 +2320,12 @@ function drawMap(){
     mctx.fillStyle = '#f3ead8'; mctx.fillText(n, x*MS, z*MS);
   }
   for (const b of buggies) {
+    if (b.kind === 'plane') {
+      mctx.save(); mctx.translate(b.x*MS, b.z*MS); mctx.rotate(-b.heading);
+      mctx.fillStyle = '#c0392b'; mctx.strokeStyle = '#f3ead8'; mctx.lineWidth = 1.5;
+      mctx.beginPath(); mctx.moveTo(0,9); mctx.lineTo(9,-2); mctx.lineTo(2,-2); mctx.lineTo(2,-8); mctx.lineTo(-2,-8); mctx.lineTo(-2,-2); mctx.lineTo(-9,-2); mctx.closePath(); mctx.fill(); mctx.stroke(); mctx.restore();
+      continue;
+    }
     if (b.kind !== 'buggy') continue;
     mctx.save(); mctx.translate(b.x*MS, b.z*MS); mctx.rotate(-b.heading);
     mctx.fillStyle = '#2f6db3'; mctx.strokeStyle = '#f3ead8'; mctx.lineWidth = 1.5;
@@ -2395,8 +2527,10 @@ function applyVehicle(vid,x,z,h,driver,riders){
   if (!driver) {
     for (const p of net.peers.values()) if (p.vehicle === v && !p.seat) unseatPeer(p);
     v.remote = 0;
+    if (v.kind === 'plane' && typeof x !== 'number' && v.air) { x = v.x; z = v.z; h = v.heading; }   // pilot left mid-air: settle it on the ground
+    if (v.kind === 'plane') v.air = false;
     if (typeof x === 'number') {
-      const gy = carGround(x, z, G+4);
+      const gy = v.kind === 'plane' ? skyGround(x, z)[0] : carGround(x, z, G+4);
       Object.assign(v, { x, z, heading:h, speed:0, y: gy > 0 ? gy : v.y });
       v.g.position.set(v.x, v.y, v.z); v.g.rotation.set(0, h, 0);
     }
@@ -2415,8 +2549,15 @@ function updatePeers(dt){
       // passengers just sit; the vehicle is moved by its driver
     } else if (p.vehicle) {
       const v = p.vehicle, V = VSPEC[v.kind];
-      v.x = p.x; v.y = p.y; v.z = p.z; v.speed = p.speed; v.heading += angDiff(p.vh, v.heading)*k;
+      const turn = angDiff(p.vh, v.heading);
+      v.x = p.x; v.y = p.y; v.z = p.z; v.speed = p.speed; v.heading += turn*k;
       v.g.position.set(v.x, v.y, v.z); v.g.rotation.y = v.heading;
+      if (v.kind === 'plane') {
+        v.air = p.ty - skyGround(p.tx, p.tz)[0] > .3;
+        v.g.rotation.x = v.air ? Math.max(-.4, Math.min(.4, -(p.ty - p.y)*.5)) : 0;
+        v.g.rotation.z = v.air ? Math.max(-.5, Math.min(.5, -turn*2)) : 0;
+        v.prop.rotation.z += (4 + p.speed*1.5)*dt;
+      }
       v.wheels.forEach(w => w.spin.rotation.x += p.speed*dt/V.r);
       if (v.kind === 'cycle') animateStudent(p.s, dt, p.speed, 'cycle');
     } else {
@@ -2723,7 +2864,7 @@ function initTouch(){
   press('tJump', () => keys.add('Space'), () => keys.delete('Space'));
   press('tFly', () => { if (driving) honk(); else { toggleFly(); if (running) { running = false; keys.delete('ShiftLeft'); } } });
   press('tRun', () => {
-    if (player.fly) { sinking = true; keys.add('ShiftLeft'); return; }   // while flying, hold to go down
+    if (player.fly || (driving && driving.kind === 'plane')) { sinking = true; keys.add('ShiftLeft'); return; }   // while flying, hold to go down
     running = !running; if (running) keys.add('ShiftLeft'); else keys.delete('ShiftLeft');
   }, () => { if (sinking) { sinking = false; keys.delete('ShiftLeft'); } });
   $('prompt').addEventListener('touchstart', e => { e.preventDefault(); if (state === 'play') interact(); }, { passive:false });
@@ -2734,16 +2875,18 @@ function initTouch(){
   let lastSig = '';
   touchLabels = () => {
     if (!running && keys.has('ShiftLeft') && !sinking) keys.delete('ShiftLeft');
-    const sig = [focus && focus.type, focus && focus.alt, !!driving, !!riding, player.fly, running].join();
+    const sig = [focus && focus.type, focus && focus.alt, focus && focus.altKick, driving && driving.kind, !!riding, player.fly, running].join();
     if (sig === lastSig) return; lastSig = sig;
     $('tUse').textContent = !focus ? 'Use' : focus.type === 'drive' ? (focus.o.kind === 'cycle' ? 'Ride' : 'Drive') : USE[focus.type] || 'Use';
     $('tUse').classList.toggle('dim', !focus);
     $('tSit').hidden = !(focus && focus.alt);
-    $('tJump').textContent = driving ? 'Brake' : player.fly ? 'Up' : 'Jump';
+    $('tSit').textContent = focus && focus.altKick ? 'Kick' : focus && focus.alt || '';
+    const pl = driving && driving.kind === 'plane';
+    $('tJump').textContent = pl ? 'Climb' : driving ? 'Brake' : player.fly ? 'Up' : 'Jump';
     $('tFly').textContent = driving ? (driving.kind === 'cycle' ? 'Bell' : 'Horn') : player.fly ? 'Land' : 'Fly';
-    $('tRun').textContent = player.fly ? 'Down' : 'Run';
+    $('tRun').textContent = pl ? 'Dive' : player.fly ? 'Down' : 'Run';
     $('tRun').classList.toggle('on', running && !player.fly);
-    $('tRun').classList.toggle('dim', !!driving);
+    $('tRun').classList.toggle('dim', !!driving && !pl);
   };
 }
 let touchLabels = () => {};
@@ -2826,12 +2969,15 @@ function emoteDone(em){ return !em || (!em.loop && (performance.now() - em.t0) >
 // ---------- café patios ----------
 const cafes = [];
 function buildCafes(){
-  for (const [name, key] of [['Usha Cafe','usha'], ['Café Coffee Day','ccd']]) {
+  // side: which wall the patio sits against. CCD uses its west lawn; its south side runs into Sarayu Hostel.
+  for (const [name, key, side] of [['Usha Cafe','usha','S'], ['Café Coffee Day','ccd','W']]) {
     const p = place(name); if (!p || !p.box) continue;
-    const [x0,,x1,z1] = p.box, mx = (x0+x1)/2 + .5, z = z1 + 3.2, gy = G+1;
+    const [x0,z0,x1,z1] = p.box, gy = G+1;
+    // at(a, o): a = distance along the wall, o = distance out from the patio's centre line
+    const at = side === 'W' ? (a, o) => [x0 - 2.2 - o, (z0+z1)/2 + .5 + a] : (a, o) => [(x0+x1)/2 + .5 + a, z1 + 3.2 + o];
     const parts = [], glow = [];
     const tbls = [-4, 0, 4].map((dx, i) => {
-      const tx = mx + dx, tz = z;
+      const [tx, tz] = at(dx, 0);
       parts.push(part(1.1,.08,1.1,0x6b4a2f,tx,gy+.72,tz), part(.12,.7,.12,0x3a2a1c,tx,gy+.35,tz), part(.6,.04,.6,0x3a2a1c,tx,gy+.02,tz));
       parts.push(part(.05,2.1,.05,0x8a8f93,tx,gy+1.05,tz));
       const um = new THREE.ConeGeometry(1.25,.5,8,1,true).translate(tx,gy+2.2,tz);
@@ -2846,10 +2992,9 @@ function buildCafes(){
       return { tid:`${key}-${i}`, x:tx, z:tz, y:gy, seats };
     });
     // fairy lights on two poles across the patio
-    const ax = mx-6.2, bx = mx+6.2;
-    for (const px of [ax,bx]) parts.push(part(.1,3,.1,0x3a3f42,px,gy+1.5,z-1.4), part(.1,3,.1,0x3a3f42,px,gy+1.5,z+1.4));
-    for (const zz of [z-1.4, z+1.4]) for (let i=0;i<=24;i++) { const t = i/24, x = ax + (bx-ax)*t, y = gy+2.95 - Math.sin(t*Math.PI)*.55; glow.push(new THREE.SphereGeometry(.07,6,4).translate(x,y,zz)); }
-    for (const px of [mx-6.2, mx+6.2]) parts.push(part(.5,.5,.5,0x8a5a3a,px,gy+.25,z), part(.7,.6,.7,0x3f8a45,px,gy+.8,z));
+    for (const a of [-6.2, 6.2]) for (const o of [-1.4, 1.4]) { const [px, pz] = at(a, o); parts.push(part(.1,3,.1,0x3a3f42,px,gy+1.5,pz)); }
+    for (const o of [-1.4, 1.4]) for (let i=0;i<=24;i++) { const t = i/24, [x, zz] = at(-6.2 + 12.4*t, o), y = gy+2.95 - Math.sin(t*Math.PI)*.55; glow.push(new THREE.SphereGeometry(.07,6,4).translate(x,y,zz)); }
+    for (const a of [-6.2, 6.2]) { const [px, pz] = at(a, 0); parts.push(part(.5,.5,.5,0x8a5a3a,px,gy+.25,pz), part(.7,.6,.7,0x3f8a45,px,gy+.8,pz)); }
     scene.add(new THREE.Mesh(mergeGeometries(parts.map(g => g.index ? g.toNonIndexed() : g)), vcMat));
     const lights = new THREE.Mesh(mergeGeometries(glow), new THREE.MeshBasicMaterial({ color:0xffe7a6 }));
     scene.add(lights);
@@ -3373,7 +3518,7 @@ async function boot(){
   await step(42, 'Planting the forest');       genTrees();
   placeList = PLACES.filter(p => !p.skip);
   placeList.forEach(p => { p.found = false; signboard(p); floatLabel(p); });
-  await step(46, 'Parking the e-buggies');     spawnBuggies(); spawnCycles(); buggies.forEach((b,i) => { b.vid = i; b.riders = [0,0,0]; }); spawnWildlife(); spawnCrocs(); buildActivities();
+  await step(46, 'Parking the e-buggies');     spawnBuggies(); spawnCycles(); spawnPlane(); buggies.forEach((b,i) => { b.vid = i; b.riders = [0,0,0]; }); spawnWildlife(); spawnCrocs(); buildActivities();
   for (let z=0;z<WZ;z++) for (let x=0;x<WX;x++) mapPixel(x,z);
   const all = [];
   for (let cz=0;cz<WZ/CS;cz++) for (let cx=0;cx<WX/CS;cx++) all.push([cx,cz]);
