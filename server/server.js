@@ -148,7 +148,8 @@ wss.on('connection', ws => {
         const x = num(m.x, -5, WORLD.x + 5), y = num(m.y, WORLD.yMin, WORLD.yMax), z = num(m.z, -5, WORLD.z + 5);
         if (x === null || y === null || z === null) return;
         me.seen = Date.now();
-        Object.assign(me, { x, y, z, f: num(m.f, -1e4, 1e4) ?? 0, a: ANIMS.has(m.a) ? m.a : 'walk', vh: num(m.vh, -1e4, 1e4) ?? 0 });
+        // ts is the sender's own clock, relayed untouched so other clients can interpolate on it
+        Object.assign(me, { x, y, z, f: num(m.f, -1e4, 1e4) ?? 0, a: ANIMS.has(m.a) ? m.a : 'walk', vh: num(m.vh, -1e4, 1e4) ?? 0, ts: Number.isFinite(m.ts) ? m.ts | 0 : 0 });
         if (!me.ready) { me.ready = true; broadcast({ t: 'add', p: pub(me) }, me); }
         return;
       }
@@ -181,6 +182,21 @@ wss.on('connection', ws => {
           if (h !== null) me.vh = h;
         }
         leaveVehicle(me);
+        return;
+      }
+      case 'vehReset': {
+        // "send the plane back to the airstrip": anyone may do it when the vehicle is free,
+        // or the pilot for the one they are flying. Keeps a wedged vehicle from being lost for good.
+        const vid = Number.isInteger(m.vid) && m.vid >= 0 && m.vid < 1000 ? m.vid : -1;
+        if (vid < 0 || Date.now() - (me.lastReset || 0) < 3000) return;
+        const x = num(m.x, 0, WORLD.x), z = num(m.z, 0, WORLD.z), h = num(m.h, -1e4, 1e4);
+        if (x === null || z === null || h === null) return;
+        const v = vehicles.get(vid);
+        if (v && v.driver && v.driver !== me.id) return;
+        me.lastReset = Date.now();
+        if (!v) vehicles.set(vid, { x, z, h, driver: 0, riders: [0, 0, 0] });
+        else Object.assign(v, { x, z, h });
+        broadcast(vehState(vid, vehicles.get(vid), true), me);
         return;
       }
       case 'chatReq': {
@@ -248,7 +264,7 @@ setInterval(() => {
   for (const p of players.values()) {
     const ps = [];
     for (const o of list) if (o !== p && Math.hypot(o.x - p.x, o.z - p.z) < VIEW_RANGE)
-      ps.push([o.id, r2(o.x), r2(o.y), r2(o.z), r2(o.f), o.a, o.v, r2(o.vh), o.seat, isAway(o)]);
+      ps.push([o.id, r2(o.x), r2(o.y), r2(o.z), r2(o.f), o.a, o.v, r2(o.vh), o.seat, isAway(o), o.ts | 0]);
     send(p, { t: 'snap', n: players.size, ps });
   }
 }, TICK_MS);

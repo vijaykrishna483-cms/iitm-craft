@@ -307,6 +307,7 @@
   <button id="pUp"><span class="pa">&#9650;</span>Up<kbd>Space</kbd></button>
   <div id="pAlt">On the ground</div>
   <button id="pDown"><span class="pa">&#9660;</span>Down<kbd>Shift</kbd></button>
+  <button id="pHome"><span class="pa">&#8635;</span>Airstrip<kbd>G</kbd></button>
 </div>
 <div id="touch">
   <div id="stick"><div id="knob"></div></div>
@@ -362,9 +363,11 @@
       <kbd>M</kbd><span>Campus map</span><kbd>T</kbd><span>Day / night</span>
       <kbd>Esc</kbd><span>Pause</span><kbd>Enter</kbd><span>Type in chat</span>
       <kbd>1–5</kbd><span>Emotes</span><kbd>C</kbd><span>Chat nearby</span>
+      <kbd>G</kbd><span>Plane back to the airstrip</span>
     </div>
     <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
     <button class="linkish" id="bUnstuck">Stuck? Go back to the Main Gate</button>
+    <button class="linkish" id="bPlane">Plane stuck? Send it back to the airstrip</button>
   </div>
 </div>
 
@@ -1578,11 +1581,28 @@ function airstrip(){
   }
   return { x:(x0+x1)/2 + .5, z:z0 + 4 };
 }
+let planeHome = null;   // head of the airstrip: where a stuck plane is sent back to
 function spawnPlane(at){
   if (!at) return;
   const m = makePlane(), x = at.x, z = at.z;
+  planeHome = { x, z };
   const v = { ...m, kind:'plane', x, z, y:G+1, heading:0, speed:0, steer:0, air:false, vy:0 };
   v.g.position.set(v.x, v.y, v.z); v.g.rotation.y = v.heading; scene.add(v.g); buggies.push(v);
+}
+const thePlane = () => buggies.find(b => b.kind === 'plane');
+// Put the plane back at the airstrip by Aerospace, whatever it got itself into. Everyone sees it move.
+function recoverPlane(auto){
+  const v = thePlane();
+  if (!v || !planeHome) return false;
+  if (v.remote && v.remote !== net.id) { toast('Aerospace two-seater', 'Someone is flying it', 'Wait until the current pilot lands before sending it back.'); return false; }
+  Object.assign(v, { x:planeHome.x, z:planeHome.z, heading:0, speed:0, steer:0, air:false, vy:0, climbT:0, blockT:0, probe:null, warned:0 });
+  v.y = skyGround(v.x, v.z)[0];
+  v.g.position.set(v.x, v.y, v.z); v.g.rotation.set(0, 0, 0);
+  if (driving === v) player.pos.set(v.x, v.y, v.z);
+  nsend({ t:'vehReset', vid:v.vid, x:v.x, z:v.z, h:0 });
+  toast('Aerospace two-seater', auto ? 'Back at the airstrip' : 'Plane recovered',
+    'It was stuck, so it is back at the start of the airstrip beside Aerospace Engineering.');
+  return true;
 }
 // Highest surface under (x,z), for flying: [top y, block]. Trees don't count — neither crown nor
 // trunk — so the plane flies through a canopy instead of wedging in one, and always lands on real ground.
@@ -2165,6 +2185,7 @@ function checkStuck(c, thr){
   else if (now - c.probe.t > 2500) { c.probe = null; unstickVehicle(c); }
 }
 function unstickVehicle(c){
+  if (c.kind === 'plane' && recoverPlane(true)) return;   // a stuck plane belongs back on its airstrip
   const cx = Math.floor(c.x), cz = Math.floor(c.z);
   let spot = null;
   // nearest road first; open flat ground if there is no road close by
@@ -2236,8 +2257,15 @@ function findFocus(){
   // Ball in reach but E went to something closer (usually "Chat" with a teammate): kick moves to R / the second button.
   // Same for a free vehicle when a player standing next to it takes E.
   if (best && best.type === 'chat' && !best.alt) {
-    const v = buggies.find(b => !b.remote && Math.hypot(b.x-px, b.z-pz) < (b.kind === 'plane' ? 4 : b.kind === 'cycle' ? 2 : 3.2) && Math.abs(b.y-player.pos.y) < 2.5);
+    const near = b => Math.hypot(b.x-px, b.z-pz) < (b.kind === 'plane' ? 4 : b.kind === 'cycle' ? 2 : 3.2) && Math.abs(b.y-player.pos.y) < 2.5;
+    const v = buggies.find(b => !b.remote && near(b));
     if (v) { best.alt = VSPEC[v.kind].prompt; best.altVeh = v; }
+    else {
+      // it already has a pilot, so offer the passenger seat on R instead — otherwise a bystander
+      // standing by the airstrip makes it impossible to ride along
+      const w = buggies.find(b => b.remote && !b.air && freeSeat(b) > 0 && near(b));
+      if (w) { best.alt = w.kind === 'plane' ? 'Back seat' : 'Sit in'; best.altVeh = w; best.altRide = true; }
+    }
   }
   if (best && best.type !== 'kick' && !best.alt && fpitch && Math.hypot(fpitch.x0 + fbLocal.x - px, fpitch.z0 + fbLocal.z - pz) < 1.7) { best.alt = 'Kick the ball'; best.altKick = true; }
   return best;
@@ -2349,7 +2377,7 @@ function updatePrompt(){
 }
 let cardFor = null;
 function updateCard(){ const o = focus && focus.type === 'chat' ? focus.o : null; if (o !== cardFor) { cardFor = o; showProfileCard(o); } }
-function interactAlt(){ focus = findFocus(); if (focus && focus.altVeh) return enterBuggy(focus.altVeh); if (focus && focus.altKick) return kick(1, -Math.sin(yaw), -Math.cos(yaw)); if (focus && focus.alt && focus.type === 'drive') enterSeat(focus.o); }
+function interactAlt(){ focus = findFocus(); if (focus && focus.altVeh) return focus.altRide ? enterSeat(focus.altVeh) : enterBuggy(focus.altVeh); if (focus && focus.altKick) return kick(1, -Math.sin(yaw), -Math.cos(yaw)); if (focus && focus.alt && focus.type === 'drive') enterSeat(focus.o); }
 
 // ============================================================
 //  Campus map overlay
@@ -2376,13 +2404,7 @@ function drawMap(){
     mctx.fillStyle = '#f3ead8'; mctx.fillText(n, x*MS, z*MS);
   }
   for (const b of buggies) {
-    if (b.kind === 'plane') {
-      mctx.save(); mctx.translate(b.x*MS, b.z*MS); mctx.rotate(-b.heading);
-      mctx.fillStyle = '#c0392b'; mctx.strokeStyle = '#f3ead8'; mctx.lineWidth = 1.5;
-      mctx.beginPath(); mctx.moveTo(0,9); mctx.lineTo(9,-2); mctx.lineTo(2,-2); mctx.lineTo(2,-8); mctx.lineTo(-2,-8); mctx.lineTo(-2,-2); mctx.lineTo(-9,-2); mctx.closePath(); mctx.fill(); mctx.stroke(); mctx.restore();
-      continue;
-    }
-    if (b.kind !== 'buggy') continue;
+    if (b.kind !== 'buggy') continue;   // the plane is drawn last, on top of everything
     mctx.save(); mctx.translate(b.x*MS, b.z*MS); mctx.rotate(-b.heading);
     mctx.fillStyle = '#2f6db3'; mctx.strokeStyle = '#f3ead8'; mctx.lineWidth = 1.5;
     mctx.beginPath(); mctx.roundRect(-3.5,-5.5,7,11,2); mctx.fill(); mctx.stroke(); mctx.restore();
@@ -2397,6 +2419,21 @@ function drawMap(){
   for (const p of net.peers.values()) {
     mctx.beginPath(); mctx.arc(p.x*MS, p.z*MS, 5, 0, 7); mctx.fillStyle = '#6fd08c'; mctx.fill(); mctx.lineWidth = 2; mctx.strokeStyle = '#10353a'; mctx.stroke();
     mctx.lineWidth = 4; mctx.strokeText(p.name, p.x*MS, p.z*MS - 13); mctx.fillStyle = '#f3ead8'; mctx.fillText(p.name, p.x*MS, p.z*MS - 13);
+  }
+  // The plane goes on last so no building dot or player can hide it, with a ring and a name.
+  const pln = thePlane();
+  if (pln) {
+    const px = pln.x*MS, pz = pln.z*MS;
+    mctx.beginPath(); mctx.arc(px, pz, 15, 0, 7);
+    mctx.fillStyle = 'rgba(192,57,43,.22)'; mctx.fill();
+    mctx.lineWidth = 2; mctx.strokeStyle = '#c0392b'; mctx.stroke();
+    mctx.save(); mctx.translate(px, pz); mctx.rotate(-pln.heading);
+    mctx.fillStyle = '#c0392b'; mctx.strokeStyle = '#f3ead8'; mctx.lineWidth = 1.8;
+    mctx.beginPath(); mctx.moveTo(0,11); mctx.lineTo(11,-2); mctx.lineTo(2.5,-2); mctx.lineTo(2.5,-10); mctx.lineTo(-2.5,-10); mctx.lineTo(-2.5,-2); mctx.lineTo(-11,-2); mctx.closePath();
+    mctx.fill(); mctx.stroke(); mctx.restore();
+    const lbl = pln.air ? 'Plane · flying' : 'Plane';
+    mctx.font = `700 14px ${SANS}`; mctx.lineWidth = 4.5; mctx.strokeStyle = '#10353a';
+    mctx.strokeText(lbl, px, pz - 24); mctx.fillStyle = '#ffd9d2'; mctx.fillText(lbl, px, pz - 24);
   }
   const heading = driving ? driving.heading : student ? student.facing : yaw+Math.PI;
   mctx.save(); mctx.translate(player.pos.x*MS, player.pos.z*MS); mctx.rotate(-heading);
@@ -2545,13 +2582,34 @@ function upsertPeer(d){
   }
   snapPeer([d.id, d.x, d.y, d.z, d.f, d.a, d.v, d.vh, d.st || 0, d.away || 0]);
 }
-function snapPeer([id,x,y,z,f,a,v,vh,st=0,away=0]){
+function snapPeer([id,x,y,z,f,a,v,vh,st=0,away=0,ts=0]){
   const p = net.peers.get(id); if (!p) return;
   if (!!away !== !!p.away) {
     p.away = !!away; p.awaySince = performance.now();
     const old = p.tag.material.map; p.tag.material.map = tagTex(p.name, p.away); old.dispose();
   }
-  if (Math.hypot(x-p.x, z-p.z) > 30) { p.x = x; p.y = y; p.z = z; }
+  if (Math.hypot(x-p.x, z-p.z) > 30) { p.x = x; p.y = y; p.z = z; p.buf = null; }
+  // Keep the last second of packets. updatePeers replays them slightly behind real time, so movement
+  // between two real positions is always at their true speed (see NET_DELAY).
+  const now = performance.now();
+  if (!p.buf) { p.buf = []; p.tOff = undefined; p.lastTs = 0; }
+  // Their clock, shifted into ours. The smallest offset seen is the least-delayed sample; let it creep
+  // up slowly so the two clocks drifting apart can never freeze the timeline.
+  const stale = ts && ts === p.lastTs;                // a server tick repeating a position we already hold
+  if (ts && !stale) {
+    const off = now - ts;
+    p.tOff = p.tOff === undefined ? off : Math.min(off, p.tOff + .5);
+    p.lastTs = ts;
+  }
+  if (!stale) {
+    const t = ts ? ts + p.tOff : now, prev = p.buf[p.buf.length-1];
+    // Track how far apart their updates really are. A player on a slow device sends less often, and
+    // we have to sit further behind them or we run out of positions and have to guess.
+    if (prev) { const g = t - prev.t; if (g > 5 && g < 600) p.gap = p.gap ? p.gap + (g - p.gap)*.25 : g; }
+    p.buf.push({ t, x, y, z, f, vh });
+    while (p.buf.length > 2 && now - p.buf[0].t > 1000) p.buf.shift();
+    if (p.buf.length > 12) p.buf.shift();
+  }
   Object.assign(p, { tx:x, ty:y, tz:z, tf:f, a, vh });
   if (v !== p.v || st !== p.seat) {
     if (p.vehicle) unseatPeer(p);
@@ -2599,31 +2657,55 @@ function applyVehicle(vid,x,z,h,driver,riders){
   }
 }
 const angDiff = (a,b) => Math.atan2(Math.sin(a-b), Math.cos(a-b));
+// Other players are drawn NET_DELAY behind real time. Packets arrive ~10 a second, so at any moment
+// we hold the two that bracket "now minus the delay" and move evenly between them: no sprint-and-stall.
+const NET_DELAY = 150;
+const lerpSnap = (a, c, u) => ({
+  x: a.x + (c.x-a.x)*u, y: a.y + (c.y-a.y)*u, z: a.z + (c.z-a.z)*u,
+  f: a.f + angDiff(c.f, a.f)*u, vh: a.vh + angDiff(c.vh, a.vh)*u,
+});
+function peerAt(p, rt){
+  const b = p.buf;
+  if (!b || !b.length) return null;
+  if (b.length === 1 || rt <= b[0].t) return b[0];
+  for (let i=0; i<b.length-1; i++) if (rt <= b[i+1].t) return lerpSnap(b[i], b[i+1], (rt - b[i].t)/Math.max(1, b[i+1].t - b[i].t));
+  // nothing new arrived: keep going on the last known course for up to 250 ms, then hold still
+  const c = b[b.length-1], a = b[b.length-2], span = Math.max(1, c.t - a.t);
+  return lerpSnap(a, c, 1 + Math.min(250, rt - c.t)/span);
+}
 function updatePeers(dt){
-  const k = 1 - Math.exp(-dt*10);
+  const k = 1 - Math.exp(-dt*10), now = performance.now();
   for (const p of net.peers.values()) {
-    const ox = p.x, oz = p.z;
-    p.x += (p.tx-p.x)*k; p.y += (p.ty-p.y)*k; p.z += (p.tz-p.z)*k;
-    p.speed += (Math.hypot(p.x-ox, p.z-oz)/Math.max(dt,1e-3) - p.speed)*Math.min(1,dt*8);
+    const ox = p.x, oy = p.y, oz = p.z;
+    const s = peerAt(p, now - Math.max(NET_DELAY, Math.min(400, (p.gap || 0)*1.8)));
+    if (s) { p.x = s.x; p.y = s.y; p.z = s.z; p.sf = s.f; p.svh = s.vh; }
+    const idt = Math.max(dt, 1e-3);
+    p.speed += (Math.hypot(p.x-ox, p.z-oz)/idt - p.speed)*Math.min(1,dt*8);
+    p.climb = (p.climb || 0) + ((p.y-oy)/idt - (p.climb || 0))*Math.min(1, dt*6);
     const d = Math.hypot(p.x-player.pos.x, p.z-player.pos.z);
     p.tag.visible = d < 70;
     if (p.vehicle && p.seat) {
       // passengers just sit; the vehicle is moved by its driver
     } else if (p.vehicle) {
       const v = p.vehicle, V = VSPEC[v.kind];
-      const turn = angDiff(p.vh, v.heading);
-      v.x = p.x; v.y = p.y; v.z = p.z; v.speed = p.speed; v.heading += turn*k;
+      const want = p.svh ?? p.vh, turn = angDiff(want, v.heading);
+      v.x = p.x; v.y = p.y; v.z = p.z; v.speed = p.speed; v.heading = want;
       v.g.position.set(v.x, v.y, v.z); v.g.rotation.y = v.heading;
       if (v.kind === 'plane') {
-        v.air = p.ty - skyGround(p.tx, p.tz)[0] > .3;
-        v.g.rotation.x = v.air ? Math.max(-.4, Math.min(.4, -(p.ty - p.y)*.5)) : 0;
-        v.g.rotation.z = v.air ? Math.max(-.5, Math.min(.5, -turn*2)) : 0;
+        v.air = p.y - skyGround(p.x, p.z)[0] > .3;
+        // pitch from their measured climb rate and roll eased in, rather than straight off the
+        // interpolation error, which jittered the whole aircraft ten times a second
+        const wantX = v.air ? Math.max(-.4, Math.min(.4, -(p.climb || 0)*.05)) : 0;
+        const wantZ = v.air ? Math.max(-.5, Math.min(.5, -turn/Math.max(dt,1e-3)*.06)) : 0;
+        const ease = Math.min(1, dt*6);
+        v.g.rotation.x += (wantX - v.g.rotation.x)*ease;
+        v.g.rotation.z += (wantZ - v.g.rotation.z)*ease;
         v.prop.rotation.z += (4 + p.speed*1.5)*dt;
       }
       v.wheels.forEach(w => w.spin.rotation.x += p.speed*dt/V.r);
       if (v.kind === 'cycle') animateStudent(p.s, dt, p.speed, 'cycle');
     } else {
-      p.f += angDiff(p.tf, p.f)*k;
+      p.f += angDiff(p.sf ?? p.tf, p.f)*k;
       p.s.g.position.set(p.x, p.y, p.z); p.s.g.rotation.y = p.f; p.s.g.visible = d < 200 && !(p.away && performance.now() - p.awaySince > 60000);   // long-away players are hidden until they return
       if (p.emote && (p.speed > .8 || emoteDone(p.emote))) p.emote = null;
       if (!emotePose(p.s, p.emote, dt)) animateStudent(p.s, dt, p.speed, p.a === 'sit' ? 'sit' : p.a === 'fly' ? 'fly' : p.a === 'air' ? 'air' : 'walk');
@@ -2636,7 +2718,9 @@ function netSend(dt){
   const car = driving || (riding && riding.v);
   const a = driving ? VSPEC[driving.kind].pose : riding || act.seated || (act.emote && act.emote.e === 'sit') ? 'sit' : player.fly ? 'fly' : player.onGround ? 'walk' : 'air';
   const r = v => Math.round(v*100)/100;
-  nsend({ t:'s', x:r(player.pos.x), y:r(player.pos.y), z:r(player.pos.z), f:r(student.facing), a, vh: car ? r(car.heading) : 0 });
+  // ts is our own clock: the server relays it so others can space our positions by when we actually
+  // sent them, not by when a server tick happened to carry them.
+  nsend({ t:'s', ts: performance.now() | 0, x:r(player.pos.x), y:r(player.pos.y), z:r(player.pos.z), f:r(student.facing), a, vh: car ? r(car.heading) : 0 });
 }
 
 // ---------- chat ----------
@@ -2791,6 +2875,7 @@ document.querySelectorAll('.who').forEach(b => b.onclick = () => {
 $('bStart').onclick = () => { if (state !== 'title') return; begin(chosen, playerName()); lock(); };
 $('bResume').onclick = lock;
 $('bUnstuck').onclick = () => { respawn(); lock(); };
+$('bPlane').onclick = () => { if (recoverPlane(false)) lock(); };
 function openFeedback(){
   if (document.pointerLockElement) document.exitPointerLock();
   state = 'feedback'; show('pause', false); show('mapview', false); show('feedback', true);
@@ -2865,6 +2950,7 @@ document.addEventListener('keydown', e => {
   if (e.code === 'KeyH' && driving) honk();
   if (e.code === 'KeyF' && !driving) toggleFly();
   if (e.code === 'KeyT') dayT = (dayT < .5 ? .5 : 0) + .02;
+  if (e.code === 'KeyG') recoverPlane(false);
 });
 document.addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('resize', () => { if (state === 'map') sizeMap(); });
@@ -2937,12 +3023,12 @@ function initTouch(){
   let lastSig = '';
   touchLabels = () => {
     if (!running && keys.has('ShiftLeft') && !sinking) keys.delete('ShiftLeft');
-    const sig = [focus && focus.type, focus && focus.alt, focus && focus.altKick, driving && driving.kind, !!riding, player.fly, running].join();
+    const sig = [focus && focus.type, focus && focus.alt, focus && focus.altKick, focus && focus.altRide, driving && driving.kind, !!riding, player.fly, running].join();
     if (sig === lastSig) return; lastSig = sig;
     $('tUse').textContent = !focus ? 'Use' : focus.type === 'drive' ? (focus.o.kind === 'cycle' ? 'Ride' : 'Drive') : USE[focus.type] || 'Use';
     $('tUse').classList.toggle('dim', !focus);
     $('tSit').hidden = !(focus && focus.alt);
-    $('tSit').textContent = focus && focus.altKick ? 'Kick' : focus && focus.altVeh ? (focus.altVeh.kind === 'plane' ? 'Fly' : focus.altVeh.kind === 'cycle' ? 'Ride' : 'Drive') : focus && focus.alt || '';
+    $('tSit').textContent = focus && focus.altKick ? 'Kick' : focus && focus.altVeh ? (focus.altRide ? 'Sit in' : focus.altVeh.kind === 'plane' ? 'Fly' : focus.altVeh.kind === 'cycle' ? 'Ride' : 'Drive') : focus && focus.alt || '';
     const pl = driving && driving.kind === 'plane';
     $('tJump').textContent = pl ? 'Climb' : driving ? 'Brake' : player.fly ? 'Up' : 'Jump';
     $('tFly').textContent = driving ? (driving.kind === 'cycle' ? 'Bell' : 'Horn') : player.fly ? 'Land' : 'Fly';
@@ -2956,6 +3042,7 @@ for (const [id, key] of [['pUp','Space'], ['pDown','ShiftLeft']]) {
   const b = $(id), on = e => { e.preventDefault(); keys.add(key); b.classList.add('on'); }, off = () => { keys.delete(key); b.classList.remove('on'); };
   b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('pointercancel', off);
 }
+$('pHome').addEventListener('pointerdown', e => { e.preventDefault(); recoverPlane(false); });
 if (TOUCH) initTouch();
 
 
@@ -3620,6 +3707,9 @@ renderer.setAnimationLoop(now => {
   const dt = Math.min(.25, (now-last)/1000); last = now;
   if (state === 'loading') return;
   adaptQuality(dt);
+  // Peers move first: a passenger's own position and camera are taken from the vehicle below, and
+  // reading last frame's position made the ride judder while the pilot's own view stayed smooth.
+  updatePeers(dt);
   if (state === 'play') {
     const sprinting = driving ? (updateDriving(dt), false) : riding ? (player.pos.set(riding.v.x, riding.v.y, riding.v.z), false)
       : act.seated ? (holdSeat(), false) : act.batting ? false : updatePlayer(dt);
@@ -3636,7 +3726,6 @@ renderer.setAnimationLoop(now => {
   }
   document.body.classList.toggle('playing', state === 'play');
   if (TOUCH && state === 'play') touchLabels();
-  updatePeers(dt);
   updateActivities(dt);
   if ((cullT -= dt) <= 0) { cullT = .4; cullChunks(); }
   updateSky(dt);
@@ -3651,7 +3740,10 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
   stateNow: () => state, act: () => act,
-  skyGround: (x,z) => skyGround(x,z), blockId: (x,y,z) => get(Math.floor(x),Math.floor(y),Math.floor(z)), consts: () => ({ G, WX, WZ, WH, LOG, LEAVES }), fbBall: () => ({ ...fbLocal, pitch: fpitch }), cafes: () => cafes, nets: () => nets, poolR: () => poolR, race: () => race, oatRig: () => oatRig, board: () => boardAt, doEmote, startBatting, startFishing, lakeTileNear, openEvents, kick, blockInfo: (x,y,z) => { const p = { x, y, z }; const at = (dy) => DEF[get(Math.floor(x), Math.floor(y+dy), Math.floor(z))]?.n || 'air';
+  skyGround: (x,z) => skyGround(x,z), blockId: (x,y,z) => get(Math.floor(x),Math.floor(y),Math.floor(z)), consts: () => ({ G, WX, WZ, WH, LOG, LEAVES }),
+  peerDbg: () => [...net.peers.values()].map(p => ({ id:p.id, n:p.buf ? p.buf.length : 0, gap:Math.round(p.gap||0), off:Math.round(p.tOff||0),
+    lag: p.buf && p.buf.length ? Math.round(performance.now() - Math.max(NET_DELAY, Math.min(400,(p.gap||0)*1.8)) - p.buf[p.buf.length-1].t) : null,
+    span: p.buf && p.buf.length > 1 ? Math.round(p.buf[p.buf.length-1].t - p.buf[0].t) : 0, x:+p.x.toFixed(2), z:+p.z.toFixed(2) })), fbBall: () => ({ ...fbLocal, pitch: fpitch }), cafes: () => cafes, nets: () => nets, poolR: () => poolR, race: () => race, oatRig: () => oatRig, board: () => boardAt, doEmote, startBatting, startFishing, lakeTileNear, openEvents, kick, blockInfo: (x,y,z) => { const p = { x, y, z }; const at = (dy) => DEF[get(Math.floor(x), Math.floor(y+dy), Math.floor(z))]?.n || 'air';
     return { feet: at(0), below: at(-.5), body: at(.9), inWater: at(.4) === 'Water', insideSolid: collides(p) }; }, crocList: () => crocs, crocs: () => crocs.map(c => ({ x:c.x, z:c.z, state:c.state, wet:isLake(Math.floor(c.x), Math.floor(c.z)) })), ridingNow: () => riding && { vid: riding.v.vid, seat: riding.seat }, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT, setDay: t => { dayT = t; },
 };
 </script>
