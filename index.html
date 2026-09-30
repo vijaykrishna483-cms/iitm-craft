@@ -2484,7 +2484,9 @@ function netUrl(){
   return 'ws://localhost:8787/ws';
 }
 function setOnline(){
-  $('cOnline').textContent = net.status === 'online' ? `${net.online} online` : net.status === 'connecting' ? 'Connecting' : 'Offline';
+  $('cOnline').textContent = net.updating ? 'Updating'
+    : net.status === 'online' ? `${net.online} online`
+    : net.status === 'connecting' ? (net.retry > 1 ? 'Reconnecting' : 'Connecting') : 'Offline';
   $('onlinePill').classList.toggle('off', net.status !== 'online');
 }
 function connect(){
@@ -2501,14 +2503,22 @@ function connect(){
     for (const v of buggies) { v.remote = 0; v.riders = [0,0,0]; }
     if (net.chatWith) closeChat(false, 'Connection lost.');
     hideChatRequest();
-    setTimeout(connect, Math.min(20000, 2500 * ++net.retry));
+    // Come back fast — a deploy restart is over in well under a minute, and the campus around you
+    // keeps working meanwhile. Jittered so a roomful of players doesn't hit the new server at once.
+    if (net.updating && net.retry > 10) net.updating = false;   // taking far longer than an update should
+    const base = net.updating ? 1200 : 700;
+    const wait = Math.min(net.updating ? 6000 : 10000, base * Math.pow(1.6, net.retry++)) * (.75 + Math.random()*.5);
+    setOnline();
+    setTimeout(connect, wait);
   };
 }
 const nsend = m => { if (net.ws && net.ws.readyState === 1) net.ws.send(JSON.stringify(m)); };
 function onNet(m){
   switch (m.t) {
     case 'welcome':
-      net.id = m.id; net.online = m.online; net.status = 'online'; net.retry = 0; setOnline();
+      net.id = m.id; net.online = m.online; net.status = 'online'; net.retry = 0;
+      if (net.updating) { net.updating = false; toast('Campus', 'Back online', 'The update is done and you are reconnected. Carry on!'); }
+      setOnline();
       m.players.forEach(upsertPeer);
       m.vehicles.forEach(([vid,x,z,h,driver,riders]) => applyVehicle(vid,x,z,h,driver,riders));
       if (driving) nsend({ t:'enter', vid:driving.vid });
@@ -2520,6 +2530,11 @@ function onNet(m){
       if (act.seated) nsend({ t:'sit', tid:act.seated.t.tid, seat:act.seated.i });
       break;
     case 'full': toast('Server', 'Campus is full', 'Too many students online. Try again in a few minutes.'); break;
+    case 'bye':
+      // the server is restarting for an update: no need to reload, we reconnect on our own
+      net.updating = true; net.retry = 0; setOnline();
+      toast('Campus', 'Quick update', 'The campus server is updating. Keep playing — you will be reconnected in a few seconds, no need to reload.');
+      break;
     case 'add': upsertPeer(m.p); break;
     case 'del': removePeer(m.id); break;
     case 'snap': net.online = m.n; setOnline(); m.ps.forEach(snapPeer); break;

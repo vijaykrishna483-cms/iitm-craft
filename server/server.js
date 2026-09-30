@@ -94,6 +94,8 @@ async function handleFeedback(req, res){
 const act = createActivities({ players, send, broadcast, near, clean, num });
 
 // ---------- HTTP ----------
+const STARTED = Date.now();
+let goingDown = false;
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost');
   if (pathname === '/' || pathname === '/index.html') {
@@ -104,7 +106,15 @@ const server = http.createServer(async (req, res) => {
     } catch { res.writeHead(500); res.end('Game file missing'); }
   } else if (pathname === '/api/online') {
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-    res.end(JSON.stringify({ online: players.size }));
+    res.end(JSON.stringify({ online: players.size, restarting: goingDown || undefined }));
+  } else if (pathname === '/api/version') {
+    // Which build is actually serving. Render sets RENDER_GIT_COMMIT, so a deploy can be verified
+    // instead of guessed at.
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.end(JSON.stringify({
+      commit: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || 'unknown',
+      started: STARTED, uptime: Math.round((Date.now() - STARTED)/1000), online: players.size,
+    }));
   } else if (pathname === '/api/feedback') {
     await handleFeedback(req, res);
   } else if (pathname === '/health') {
@@ -118,6 +128,9 @@ const server = http.createServer(async (req, res) => {
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 2048 });
 
 wss.on('connection', ws => {
+  // Mid-restart: don't take someone into a world that is about to vanish — tell them to wait a moment
+  // and let their client retry, which it does on its own.
+  if (goingDown) { try { ws.send(JSON.stringify({ t: 'bye', reason: 'update', ms: 20000 })); ws.close(1001, 'server restarting'); } catch {} return; }
   let me = null;
   let budget = 60, budgetAt = Date.now();
   ws.isAlive = true;
@@ -287,3 +300,20 @@ setInterval(() => {
 }, 30000);
 
 server.listen(PORT, () => console.log(`IITM Craft running at http://localhost:${PORT}`));
+
+// Deploys restart this process, and Render sends SIGTERM first. Tell everyone it is a restart rather
+// than letting their socket die silently: the client then keeps the world running, says so on screen,
+// and reconnects quickly instead of backing off as if the connection had failed.
+function shutdown(signal){
+  if (goingDown) return;
+  goingDown = true;
+  console.log(`${signal}: telling ${players.size} player(s) we are restarting`);
+  broadcast({ t: 'bye', reason: 'update', ms: 25000 });
+  // give the notice a moment on the wire, then close politely
+  setTimeout(() => {
+    for (const p of players.values()) { try { p.ws.close(1001, 'server restarting'); } catch {} }
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 3000).unref();
+  }, 400);
+}
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => shutdown(sig));

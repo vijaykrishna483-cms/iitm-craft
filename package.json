@@ -8,7 +8,9 @@
   "scripts": {
     "start": "node server/server.js",
     "test": "node tests/e2e.mjs",
-    "test:activities": "node tests/activities.mjs"
+    "test:activities": "node tests/activities.mjs",
+    "deploy": "node scripts/deploy.mjs",
+    "deploy:check": "node scripts/deploy.mjs --check"
   },
   "engines": {
     "node": ">=18"
