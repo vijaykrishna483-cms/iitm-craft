@@ -1584,11 +1584,12 @@ function spawnPlane(at){
   const v = { ...m, kind:'plane', x, z, y:G+1, heading:0, speed:0, steer:0, air:false, vy:0 };
   v.g.position.set(v.x, v.y, v.z); v.g.rotation.y = v.heading; scene.add(v.g); buggies.push(v);
 }
-// Highest surface under (x,z), for flying: [top y, block]. Tree canopies don't count, so the plane can always come down.
+// Highest surface under (x,z), for flying: [top y, block]. Trees don't count — neither crown nor
+// trunk — so the plane flies through a canopy instead of wedging in one, and always lands on real ground.
 function skyGround(x, z){
   const xi = Math.floor(x), zi = Math.floor(z);
   if (xi<2 || zi<2 || xi>=WX-2 || zi>=WZ-2) return [WH, 0];
-  for (let y=WH-1; y>=0; y--) { const b = get(xi,y,zi); if (b && b !== LEAVES) return [y+1, b]; }
+  for (let y=WH-1; y>=0; y--) { const b = get(xi,y,zi); if (b && b !== LEAVES && b !== LOG) return [y+1, b]; }
   return [G+1, 0];
 }
 
@@ -2094,7 +2095,8 @@ function flyStep(dt){
     // look ahead: a building within ~12 blocks that we'd clip makes the plane climb by itself
     const fx = Math.sin(c.heading), fz = Math.cos(c.heading);
     const tall = Math.max(skyGround(c.x + fx*6, c.z + fz*6)[0], skyGround(c.x + fx*12, c.z + fz*12)[0]) > c.y - 1;
-    const want = (up || (!down && (c.climbT > 0 || tall)) ? 7 : down ? -8 : 0)*lift - (1-lift)*6;
+    // climbT wins over a held Down: it is set just after take-off and whenever we clip something.
+    const want = (up || c.climbT > 0 || (!down && tall) ? 7 : down ? -8 : 0)*lift - (1-lift)*6;
     c.vy += (want - c.vy)*Math.min(1, dt*2);
     c.heading += c.steer*dt*1.3;
     let nx = c.x + Math.sin(c.heading)*c.speed*dt, nz = c.z + Math.cos(c.heading)*c.speed*dt;
@@ -2102,10 +2104,14 @@ function flyStep(dt){
     if (nx < 8 || nz < 8 || nx > WX-8 || nz > WZ-8) { c.heading += Math.PI*dt*1.5; nx = Math.max(8, Math.min(WX-8, nx)); nz = Math.max(8, Math.min(WZ-8, nz)); }
     const [ahead] = skyGround(nx + Math.sin(c.heading)*2.8, nz + Math.cos(c.heading)*2.8);
     if (ahead - c.y > 1.2) {
-      // about to fly into a building or tree: bounce off and pull up
-      c.speed = Math.max(c.speed*.6, V.lift); c.vy = 8; c.y += 8*dt;
+      // about to fly into a building: bounce off and pull up. climbT overrides a held Down key,
+      // which would otherwise push it straight back into the wall and pin it there.
+      c.speed = Math.max(c.speed*.6, V.lift); c.vy = 8; c.y += 8*dt; c.climbT = Math.max(c.climbT || 0, 1);
+      c.blockT = (c.blockT || 0) + dt;
       if (!c.warned || performance.now() - c.warned > 4000) { c.warned = performance.now(); toast('Aerospace two-seater', 'Pull up!', 'You clipped a building. Climb higher before flying over it.'); }
-    } else { c.x = nx; c.z = nz; }
+      // still nose-against it after 3 s (e.g. wedged in a courtyard): put it back on a runway-ish spot
+      if (c.blockT > 3) { c.blockT = 0; unstickVehicle(c); return; }
+    } else { c.blockT = 0; c.x = nx; c.z = nz; }
     const [under, ub] = skyGround(c.x, c.z);
     let ny = Math.min(PLANE_CEIL, c.y + c.vy*dt);
     if (ny <= under) {
@@ -2170,9 +2176,10 @@ function unstickVehicle(c){
   // face away from whatever it was stuck on, so driving on doesn't wedge it again
   c.heading = Math.atan2(spot[0]+.5 - c.x, spot[1]+.5 - c.z);
   c.x = spot[0]+.5; c.z = spot[1]+.5; c.y = G+1; c.speed = 0;
+  if (c.kind === 'plane') { c.air = false; c.vy = 0; c.climbT = 0; c.blockT = 0; }
   c.g.position.set(c.x, c.y, c.z); c.g.rotation.set(0, c.heading, 0);
   if (driving === c) player.pos.set(c.x,c.y,c.z);
-  toast('Vehicles', 'Back on the road', 'Your vehicle was stuck, so we moved it to the nearest road.');
+  toast('Vehicles', 'Back on the road', c.kind === 'plane' ? 'Your plane was stuck, so we landed it on clear ground.' : 'Your vehicle was stuck, so we moved it to the nearest road.');
 }
 
 // ============================================================
@@ -3643,7 +3650,8 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   teleport, places: () => placeList, player, buggies, deer, monkeys, openMap, begin, enterBuggy, exitBuggy, keys, net, requestChat, respondChat, closeChat,
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
-  stateNow: () => state, act: () => act, fbBall: () => ({ ...fbLocal, pitch: fpitch }), cafes: () => cafes, nets: () => nets, poolR: () => poolR, race: () => race, oatRig: () => oatRig, board: () => boardAt, doEmote, startBatting, startFishing, lakeTileNear, openEvents, kick, blockInfo: (x,y,z) => { const p = { x, y, z }; const at = (dy) => DEF[get(Math.floor(x), Math.floor(y+dy), Math.floor(z))]?.n || 'air';
+  stateNow: () => state, act: () => act,
+  skyGround: (x,z) => skyGround(x,z), blockId: (x,y,z) => get(Math.floor(x),Math.floor(y),Math.floor(z)), consts: () => ({ G, WX, WZ, WH, LOG, LEAVES }), fbBall: () => ({ ...fbLocal, pitch: fpitch }), cafes: () => cafes, nets: () => nets, poolR: () => poolR, race: () => race, oatRig: () => oatRig, board: () => boardAt, doEmote, startBatting, startFishing, lakeTileNear, openEvents, kick, blockInfo: (x,y,z) => { const p = { x, y, z }; const at = (dy) => DEF[get(Math.floor(x), Math.floor(y+dy), Math.floor(z))]?.n || 'air';
     return { feet: at(0), below: at(-.5), body: at(.9), inWater: at(.4) === 'Water', insideSolid: collides(p) }; }, crocList: () => crocs, crocs: () => crocs.map(c => ({ x:c.x, z:c.z, state:c.state, wet:isLake(Math.floor(c.x), Math.floor(c.z)) })), ridingNow: () => riding && { vid: riding.v.vid, seat: riding.seat }, cam: () => ({ yaw, pitch }), stuckNow: () => collides(player.pos), toasts: () => toastLog, focusObj: () => focus && focus.o && focus.o.vid, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }), studentNow: () => student, greetedNow: () => greeted, dayNow: () => dayT, setDay: t => { dayT = t; },
 };
 </script>
