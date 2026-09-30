@@ -2069,7 +2069,10 @@ function flyStep(dt){
   if (up && !c.air) thr = Math.max(thr, 1);
   if (up && c.air) c.speed = Math.max(c.speed, V.lift);
   c.steer += (st*.6 - c.steer)*Math.min(1,dt*4);
-  if (thr) c.speed += thr*(thr > 0 ? V.acc : 8)*dt; else c.speed *= Math.max(0, 1 - dt*(c.air ? .05 : .9));
+  // no throttle: in the air it settles at cruise speed (so letting go never stalls it); on the ground it rolls to a stop
+  if (thr) c.speed += thr*(thr > 0 ? V.acc : 8)*dt;
+  else if (c.air) c.speed += (V.lift + 5 - c.speed)*Math.min(1, dt*.6);
+  else c.speed *= Math.max(0, 1 - dt*.9);
   c.speed = Math.max(c.air ? 0 : -3, Math.min(V.max, c.speed));
   if (!c.air) {
     c.heading += c.steer*c.speed*dt*V.turn;
@@ -2164,7 +2167,10 @@ function unstickVehicle(c){
     if (ok(x,z) && flatSpot(x,z)) spot = [x,z];
   }
   if (!spot) return;
+  // face away from whatever it was stuck on, so driving on doesn't wedge it again
+  c.heading = Math.atan2(spot[0]+.5 - c.x, spot[1]+.5 - c.z);
   c.x = spot[0]+.5; c.z = spot[1]+.5; c.y = G+1; c.speed = 0;
+  c.g.position.set(c.x, c.y, c.z); c.g.rotation.set(0, c.heading, 0);
   if (driving === c) player.pos.set(c.x,c.y,c.z);
   toast('Vehicles', 'Back on the road', 'Your vehicle was stuck, so we moved it to the nearest road.');
 }
@@ -2221,6 +2227,11 @@ function findFocus(){
   for (const c of crocs) consider('croc', c, 6, 'Mugger crocodile · keep your distance', 1);
   activityFocus(consider);
   // Ball in reach but E went to something closer (usually "Chat" with a teammate): kick moves to R / the second button.
+  // Same for a free vehicle when a player standing next to it takes E.
+  if (best && best.type === 'chat' && !best.alt) {
+    const v = buggies.find(b => !b.remote && Math.hypot(b.x-px, b.z-pz) < (b.kind === 'plane' ? 4 : b.kind === 'cycle' ? 2 : 3.2) && Math.abs(b.y-player.pos.y) < 2.5);
+    if (v) { best.alt = VSPEC[v.kind].prompt; best.altVeh = v; }
+  }
   if (best && best.type !== 'kick' && !best.alt && fpitch && Math.hypot(fpitch.x0 + fbLocal.x - px, fpitch.z0 + fbLocal.z - pz) < 1.7) { best.alt = 'Kick the ball'; best.altKick = true; }
   return best;
 }
@@ -2331,7 +2342,7 @@ function updatePrompt(){
 }
 let cardFor = null;
 function updateCard(){ const o = focus && focus.type === 'chat' ? focus.o : null; if (o !== cardFor) { cardFor = o; showProfileCard(o); } }
-function interactAlt(){ focus = findFocus(); if (focus && focus.altKick) return kick(1, -Math.sin(yaw), -Math.cos(yaw)); if (focus && focus.alt && focus.type === 'drive') enterSeat(focus.o); }
+function interactAlt(){ focus = findFocus(); if (focus && focus.altVeh) return enterBuggy(focus.altVeh); if (focus && focus.altKick) return kick(1, -Math.sin(yaw), -Math.cos(yaw)); if (focus && focus.alt && focus.type === 'drive') enterSeat(focus.o); }
 
 // ============================================================
 //  Campus map overlay
@@ -2469,6 +2480,12 @@ function onNet(m){
     case 'del': removePeer(m.id); break;
     case 'snap': net.online = m.n; setOnline(); m.ps.forEach(snapPeer); break;
     case 'veh': applyVehicle(m.vid, m.x, m.z, m.h, m.driver, m.riders); break;
+    case 'vehFreed':
+      if (driving && driving.vid === m.vid) exitBuggy(true, true);
+      else if (riding && riding.v.vid === m.vid) leaveSeat(true);
+      else break;
+      toast('Vehicles', 'You were away for a while', 'We gave your seat back so others could use it. You are standing next to it.');
+      break;
     case 'enterRes':
       if (!m.ok && driving && driving.vid === m.vid) { exitBuggy(true, true); toast('Vehicles', 'Someone got there first', 'Another student is already driving it.'); }
       else if (!m.ok && riding && riding.v.vid === m.vid) { leaveSeat(true); toast('Vehicles', 'This e-buggy is full', 'All four seats are taken.'); }
@@ -2918,7 +2935,7 @@ function initTouch(){
     $('tUse').textContent = !focus ? 'Use' : focus.type === 'drive' ? (focus.o.kind === 'cycle' ? 'Ride' : 'Drive') : USE[focus.type] || 'Use';
     $('tUse').classList.toggle('dim', !focus);
     $('tSit').hidden = !(focus && focus.alt);
-    $('tSit').textContent = focus && focus.altKick ? 'Kick' : focus && focus.alt || '';
+    $('tSit').textContent = focus && focus.altKick ? 'Kick' : focus && focus.altVeh ? (focus.altVeh.kind === 'plane' ? 'Fly' : focus.altVeh.kind === 'cycle' ? 'Ride' : 'Drive') : focus && focus.alt || '';
     const pl = driving && driving.kind === 'plane';
     $('tJump').textContent = pl ? 'Climb' : driving ? 'Brake' : player.fly ? 'Up' : 'Jump';
     $('tFly').textContent = driving ? (driving.kind === 'cycle' ? 'Bell' : 'Horn') : player.fly ? 'Land' : 'Fly';

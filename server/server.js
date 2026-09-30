@@ -253,6 +253,18 @@ setInterval(() => {
   }
 }, TICK_MS);
 
+// Free seats held by players who stopped sending updates (tab in the background, laptop closed),
+// so one idle tab can't lock the plane or a buggy for everyone.
+const VEH_IDLE_MS = 45000;
+setInterval(() => {
+  const now = Date.now();
+  for (const p of players.values()) if (p.v >= 0 && now - (p.seen || 0) > VEH_IDLE_MS) {
+    const vid = p.v;
+    leaveVehicle(p);
+    send(p, { t: 'vehFreed', vid });
+  }
+}, 5000);
+
 // Drop dead connections.
 setInterval(() => {
   for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive = false; ws.ping(); }
