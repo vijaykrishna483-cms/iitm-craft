@@ -158,6 +158,12 @@
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   #fbStatus{font:500 13px var(--sans);color:var(--muted);min-height:18px;margin-top:12px}
   #fbStatus.err{color:#f0a08a}
+  #planeCtl{position:absolute;left:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:stretch;gap:8px;z-index:6}
+  #planeCtl button{display:flex;flex-direction:column;align-items:center;gap:2px;width:86px;padding:10px 0;border-radius:16px;border:1px solid var(--line);background:rgba(15,50,54,.94);color:#f3ead8;font:700 15px var(--sans);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+  #planeCtl button.on{background:var(--gold);color:#10353a}
+  #planeCtl .pa{font-size:20px;line-height:1}
+  #planeCtl kbd{font:600 10px var(--sans);opacity:.75}
+  #pAlt{text-align:center;font:600 12px var(--sans);color:#f3ead8;background:rgba(15,50,54,.8);border-radius:10px;padding:5px 4px}
   #prompt{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(15,50,54,.94);border:1px solid var(--line);border-radius:999px;padding:8px 18px 8px 9px;font:600 14px var(--sans);box-shadow:0 8px 24px rgba(0,0,0,.2)}
   .palt{display:inline-flex;align-items:center;gap:8px;margin-left:6px;padding-left:12px;border-left:1px solid var(--line)}
   .palt[hidden]{display:none}
@@ -297,6 +303,11 @@
   <div id="prompt" class="hidden"><kbd>E</kbd><span id="promptText"></span><span id="promptAlt" class="palt" hidden><kbd>R</kbd><span id="promptAltText"></span></span></div>
 </div>
 
+<div id="planeCtl" class="hidden">
+  <button id="pUp"><span class="pa">&#9650;</span>Up<kbd>Space</kbd></button>
+  <div id="pAlt">On the ground</div>
+  <button id="pDown"><span class="pa">&#9660;</span>Down<kbd>Shift</kbd></button>
+</div>
 <div id="touch">
   <div id="stick"><div id="knob"></div></div>
   <button class="tb emo" id="tEmote" aria-label="Emotes"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8M9 9.5h.01M15 9.5h.01"/></svg></button>
@@ -1974,7 +1985,8 @@ function enterBuggy(b){
   lastMouse = 0;
   $('mode').textContent = b.kind === 'cycle' ? 'Cycling' : b.kind === 'plane' ? 'Flying the plane' : 'Driving';
   if (b.kind === 'cycle') sfx.bell(); else sfx.start();
-  if (b.kind === 'plane') toast('Aerospace two-seater', 'You are the pilot', TOUCH ? 'Push the stick forward to speed up, then hold Climb. Dive to come down. A friend can hop in the back.' : 'W to speed up, then hold Space to climb. A/D to turn, Shift to descend. Land to get out. A friend can hop in the back.');
+  if (b.kind === 'plane') show('planeCtl', true);
+  if (b.kind === 'plane') toast('Aerospace two-seater', 'You are the pilot', TOUCH ? 'Push the stick forward: at full speed it takes off by itself. Up / Down to change height, stick to turn.' : 'Hold W: at full speed it takes off by itself. Space / Shift (or the Up / Down buttons) to climb and descend, A/D to turn.');
 }
 function enterSeat(b){
   const seat = freeSeat(b); if (seat < 0) return;
@@ -2003,6 +2015,7 @@ function exitBuggy(force, rejected){
   if (b.kind === 'plane') {
     if (b.air) { b.y = skyGround(b.x, b.z)[0]; b.air = false; b.vy = 0; b.g.position.y = b.y; }
     b.g.rotation.set(0, b.heading, 0);
+    show('planeCtl', false); keys.delete('Space'); keys.delete('ShiftLeft');
   }
   const spot = exitSpot(b);
   b.speed = 0; driving = null;
@@ -2050,12 +2063,13 @@ function flyStep(dt){
       sum += gy;
     }
     if (ok) { c.x = nx; c.z = nz; c.y += (sum/4 - c.y)*Math.min(1,dt*12); } else c.speed *= -.2;
-    if (up && c.speed >= V.lift) { c.air = true; c.vy = 2.5; }
+    if (c.speed >= V.lift && (up || thr > 0)) { c.air = true; c.vy = 3; c.climbT = 2.5; toast('Aerospace two-seater', 'Airborne!', 'Up / Down to change height, turn to steer. Come down slowly on open ground to land.'); }
     checkStuck(c, thr);
   } else {
     // lift fades below take-off speed, so a slow plane sinks
     const lift = Math.max(0, Math.min(1, (c.speed - V.lift*.6)/(V.lift*.4)));
-    const want = (up ? 7 : down ? -8 : 0)*lift - (1-lift)*6;
+    c.climbT = Math.max(0, (c.climbT || 0) - dt);
+    const want = (up || (c.climbT > 0 && !down) ? 7 : down ? -8 : 0)*lift - (1-lift)*6;
     c.vy += (want - c.vy)*Math.min(1, dt*2);
     c.heading += c.steer*dt*1.3;
     let nx = c.x + Math.sin(c.heading)*c.speed*dt, nz = c.z + Math.cos(c.heading)*c.speed*dt;
@@ -2079,6 +2093,8 @@ function flyStep(dt){
   c.g.rotation.x = c.air ? Math.max(-.4, Math.min(.4, -c.vy*.05)) : 0;
   c.g.rotation.z = c.air ? -c.steer*.8 : 0;
   c.prop.rotation.z += (4 + c.speed*1.5)*dt;
+  const alt = c.air ? Math.round(c.y - skyGround(c.x, c.z)[0]) : 0, altTxt = c.air ? `Height ${alt} m` : c.speed >= V.lift*.6 ? 'Taking off…' : 'On the ground';
+  if ($('pAlt').textContent !== altTxt) $('pAlt').textContent = altTxt;
   c.wheels.forEach((w,i) => { if (!c.air) w.spin.rotation.x += c.speed*dt/V.r; if (i === 0) w.steer.rotation.y = -c.steer*.6; });
   player.pos.set(c.x,c.y,c.z);
 }
@@ -2890,6 +2906,10 @@ function initTouch(){
   };
 }
 let touchLabels = () => {};
+for (const [id, key] of [['pUp','Space'], ['pDown','ShiftLeft']]) {
+  const b = $(id), on = e => { e.preventDefault(); keys.add(key); b.classList.add('on'); }, off = () => { keys.delete(key); b.classList.remove('on'); };
+  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('pointercancel', off);
+}
 if (TOUCH) initTouch();
 
 
