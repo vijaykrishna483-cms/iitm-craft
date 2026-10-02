@@ -35,6 +35,7 @@
   #onlinePill:hover,#onlinePill:active{border-color:var(--gold)}
   #onlinePill::after{content:'See who\2019s online';font:600 11px var(--sans);color:var(--muted);margin-left:2px}
   #onlinePill:hover::after{color:var(--gold)}
+  body:not(.touch) #onlinePill::after{content:'See who\2019s online \00B7  Tab'}
   @media (max-width:700px){ #onlinePill::after{content:'Who\2019s on'} }
   #tools{position:absolute;top:16px;right:18px;display:flex;gap:8px;pointer-events:auto}
   .icon{width:40px;height:40px;border-radius:50%;background:rgba(15,50,54,.94);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;color:var(--cream);position:relative}
@@ -400,9 +401,9 @@
       <kbd>M</kbd><span>Campus map</span><kbd>T</kbd><span>Day / night</span>
       <kbd>Esc</kbd><span>Pause</span><kbd>Enter</kbd><span>Type in chat</span>
       <kbd>1–5</kbd><span>Emotes</span><kbd>C</kbd><span>Chat nearby</span>
-      <kbd>G</kbd><span>Plane back to the airstrip</span>
+      <kbd>Tab</kbd><span>See who’s online</span><kbd>G</kbd><span>Plane back to the airstrip</span>
     </div>
-    <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
+    <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bWho">See who’s online</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
     <button class="linkish" id="bUnstuck">Stuck? Go back to the Main Gate</button>
     <button class="linkish" id="bPlane">Plane stuck? Send it back to the airstrip</button>
   </div>
@@ -3158,6 +3159,7 @@ document.querySelectorAll('.who').forEach(b => b.onclick = () => {
 $('bStart').onclick = () => { if (state !== 'title') return; begin(chosen, playerName()); lock(); };
 $('bResume').onclick = lock;
 $('bUnstuck').onclick = () => { respawn(); lock(); };
+$('bWho').onclick = () => openMap();
 const openWho = e => { if (e) { e.preventDefault(); e.stopPropagation(); } if (state === 'play' || state === 'paused') openMap(); };
 $('onlinePill').addEventListener('click', openWho);
 $('onlinePill').addEventListener('touchend', openWho, { passive:false });
@@ -3226,7 +3228,9 @@ document.addEventListener('keydown', e => {
   if (state === 'play' && (e.code === 'Enter' || e.code === 'KeyC')) { e.preventDefault(); openSay(); return; }
   if (state === 'play' && net.chatWith && e.code === 'KeyX') { closeChat(true); return; }
   if (e.code === 'KeyM' && (state === 'play' || state === 'paused')) { openMap(); return; }
-  if (state === 'map') { if (e.code === 'KeyM') closeMap(true); else if (e.code === 'Escape') closeMap(false); return; }
+  // Tab: who is online. On a laptop the mouse is captured while you play, so the pill cannot be clicked.
+  if (e.code === 'Tab' && (state === 'play' || state === 'paused')) { e.preventDefault(); openMap(); return; }
+  if (state === 'map') { if (e.code === 'KeyM' || e.code === 'Tab') { e.preventDefault(); closeMap(true); } else if (e.code === 'Escape') closeMap(false); return; }
   if (state !== 'play') return;
   if (e.code === 'Space') e.preventDefault();
   if (e.repeat) return;
