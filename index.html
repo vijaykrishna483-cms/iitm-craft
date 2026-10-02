@@ -133,7 +133,6 @@
     #clock{display:none}
     body.touch #chat{right:62px;width:min(280px,calc(100vw - 90px))}
     body.touch #chatreq{right:62px;width:min(290px,calc(100vw - 90px))}
-    body #toasts{top:auto;bottom:200px;width:min(280px,calc(100vw - 40px))}
   }
   @media (max-height:520px){
     .mapcard{padding:10px 14px 14px}
@@ -216,6 +215,18 @@
   .toast h4{margin:3px 0 2px;font:600 15px/1.25 var(--serif)}
   .toast p{margin:0;font:400 12px/1.4 var(--sans);color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .toast.out{opacity:0;transform:translateY(-6px);transition:.4s}
+  /* Phones: a slim one-line note at the top, so nothing ever covers the middle of the screen */
+  body.touch #toasts{top:max(8px,env(safe-area-inset-top));width:auto;max-width:min(340px,52vw);gap:4px;pointer-events:none}
+  body.touch .toast{display:flex;align-items:baseline;gap:7px;padding:5px 12px;border-radius:999px;width:auto;max-width:100%}
+  body.touch .toast .eyebrow{font-size:8.5px;flex:none}
+  body.touch .toast h4{margin:0;font:600 12.5px/1.3 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.touch .toast p{display:none}
+  @media (orientation:portrait){ body.touch #toasts{top:calc(max(8px,env(safe-area-inset-top)) + 100px);max-width:calc(100vw - 32px)} }   /* just under the place label */
+  /* a newer version is live */
+  #upd{position:absolute;left:50%;top:62px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:var(--gold);color:#1c2a22;border:0;border-radius:999px;padding:8px 16px;font:700 13px var(--sans);box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:auto;cursor:pointer;animation:tin .35s ease-out}
+  #upd[hidden]{display:none}
+  body.touch #upd{top:calc(max(8px,env(safe-area-inset-top)) + 46px);font-size:12.5px}
+  @media (orientation:portrait){ body.touch #upd{top:calc(max(8px,env(safe-area-inset-top)) + 140px)} }
   @keyframes tin{from{opacity:0;transform:translateY(-10px)}}
 
   /* screens */
@@ -319,6 +330,7 @@
   </div>
   <div id="clock"></div>
   <div id="toasts"></div>
+  <button id="upd" hidden>New version ready · tap to refresh</button>
   <div id="place"><div class="eyebrow" id="pZone">Sardar Patel Road</div><div class="name" id="pName">Main Gate</div></div>
   <div id="mode" class="pill">Walking</div>
   <div id="escHint"><kbd>Enter</kbd> Talk to people nearby &middot; <kbd>Esc</kbd> Pause</div>
@@ -2369,8 +2381,8 @@ function toast(eyebrow, title, body){
   t.innerHTML = '<div class="eyebrow"></div><h4></h4><p></p>';
   t.children[0].textContent = eyebrow; t.children[1].textContent = title; t.children[2].textContent = body || '';
   $('toasts').appendChild(t);
-  while ($('toasts').children.length > 2) $('toasts').firstChild.remove();
-  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 450); }, 4800);
+  while ($('toasts').children.length > (TOUCH ? 1 : 2)) $('toasts').firstChild.remove();
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 450); }, TOUCH ? 2800 : 4800);
 }
 let curPlace = null;
 function checkPlaces(){
@@ -2777,6 +2789,9 @@ function onNet(m){
   switch (m.t) {
     case 'welcome':
       net.id = m.id; net.online = m.online; net.status = 'online'; net.retry = 0;
+      // Reconnecting after a deploy keeps this page's old code running. If the server is on a newer
+      // build, offer a refresh rather than reloading mid-game and losing where you are.
+      if (m.build) { if (!net.build) net.build = m.build; else if (m.build !== net.build) $('upd').hidden = false; }
       if (net.updating) { net.updating = false; toast('Campus', 'Back online', 'The update is done and you are reconnected. Carry on!'); }
       setOnline();
       m.players.forEach(upsertPeer);
@@ -3159,6 +3174,7 @@ document.querySelectorAll('.who').forEach(b => b.onclick = () => {
 $('bStart').onclick = () => { if (state !== 'title') return; begin(chosen, playerName()); lock(); };
 $('bResume').onclick = lock;
 $('bUnstuck').onclick = () => { respawn(); lock(); };
+$('upd').onclick = () => location.reload();
 $('bWho').onclick = () => openMap();
 const openWho = e => { if (e) { e.preventDefault(); e.stopPropagation(); } if (state === 'play' || state === 'paused') openMap(); };
 $('onlinePill').addEventListener('click', openWho);
@@ -4036,7 +4052,7 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
   stateNow: () => state, act: () => act,
-  view: () => ({ ...view, mapW, mapH }), whoSel: () => whoSel, openMapNow: openMap,
+  view: () => ({ ...view, mapW, mapH }), whoSel: () => whoSel, openMapNow: openMap, toastNow: (a,b,c) => toast(a,b,c),
   skyGround: (x,z) => skyGround(x,z), blockId: (x,y,z) => get(Math.floor(x),Math.floor(y),Math.floor(z)), consts: () => ({ G, WX, WZ, WH, LOG, LEAVES }),
   peerDbg: () => [...net.peers.values()].map(p => ({ id:p.id, n:p.buf ? p.buf.length : 0, gap:Math.round(p.gap||0), off:Math.round(p.tOff||0),
     lag: p.buf && p.buf.length ? Math.round(performance.now() - Math.max(NET_DELAY, Math.min(400,(p.gap||0)*1.8)) - p.buf[p.buf.length-1].t) : null,

@@ -95,6 +95,7 @@ const act = createActivities({ players, send, broadcast, near, clean, num });
 
 // ---------- HTTP ----------
 const STARTED = Date.now();
+const BUILD = (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || String(STARTED);
 let goingDown = false;
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost');
@@ -151,7 +152,7 @@ wss.on('connection', ws => {
         seen: Date.now() };   // count them as active from the moment they join, or the idle sweep
                               // could take the seat of someone who has not sent a position yet
       players.set(me.id, me);
-      send(me, { t: 'welcome', id: me.id, online: players.size,
+      send(me, { t: 'welcome', id: me.id, online: players.size, build: BUILD,
         players: [...players.values()].filter(p => p !== me && p.ready).map(pub),
         vehicles: [...vehicles].map(([id, v]) => [id, r2(v.x), r2(v.z), r2(v.h), v.driver, v.riders]), ...act.welcome() });
       return;
