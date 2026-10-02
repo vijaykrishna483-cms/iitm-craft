@@ -214,6 +214,16 @@ wss.on('connection', ws => {
         broadcast(vehState(vid, vehicles.get(vid), true), me);
         return;
       }
+      case 'who': {
+        // Everyone on campus, for the map and the people list. Snapshots only carry players within
+        // VIEW_RANGE, so without this you cannot see or find anyone across campus.
+        if (Date.now() - (me.lastWho || 0) < 800) return;
+        me.lastWho = Date.now();
+        const ps = [];
+        for (const o of players.values()) if (o.ready) ps.push([o.id, o.name, r2(o.x), r2(o.z), isAway(o), o.v >= 0 ? 1 : 0]);
+        send(me, { t: 'who', n: players.size, ps });
+        return;
+      }
       case 'chatReq': {
         const to = players.get(m.to);
         if (!to || to === me || me.chatWith || to.chatWith || Date.now() - me.lastReq < 2000) return;

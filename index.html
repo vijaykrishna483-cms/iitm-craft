@@ -31,6 +31,11 @@
   #brand .mark{font:700 17px var(--serif);letter-spacing:.06em;text-shadow:0 1px 8px rgba(0,0,0,.35)}
   .pill{background:rgba(15,50,54,.94);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font:500 13px var(--sans);display:flex;gap:6px;align-items:baseline}
   .pill b{font:700 14px var(--sans);color:var(--gold);font-variant-numeric:tabular-nums}
+  #onlinePill{pointer-events:auto;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent}
+  #onlinePill:hover,#onlinePill:active{border-color:var(--gold)}
+  #onlinePill::after{content:'See who\2019s online';font:600 11px var(--sans);color:var(--muted);margin-left:2px}
+  #onlinePill:hover::after{color:var(--gold)}
+  @media (max-width:700px){ #onlinePill::after{content:'Who\2019s on'} }
   #tools{position:absolute;top:16px;right:18px;display:flex;gap:8px;pointer-events:auto}
   .icon{width:40px;height:40px;border-radius:50%;background:rgba(15,50,54,.94);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;color:var(--cream);position:relative}
   .icon:hover{border-color:var(--gold)}
@@ -251,15 +256,47 @@
 
   /* map */
   #mapview{position:fixed;inset:0;background:rgba(8,26,29,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px}
-  .mapcard{background:var(--panel-solid);border:1px solid var(--line);border-radius:20px;padding:18px 20px 20px;box-shadow:0 30px 80px rgba(0,0,0,.4);max-height:100%;display:flex;flex-direction:column}
+  .mapcard{background:var(--panel-solid);border:1px solid var(--line);border-radius:20px;padding:18px 20px 20px;box-shadow:0 30px 80px rgba(0,0,0,.4);display:flex;flex-direction:column;max-width:96vw;height:min(940px,94vh)}
   .mapcard header{display:flex;align-items:flex-end;gap:24px;margin-bottom:14px}
   .mapcard header h2{font:600 26px var(--serif);margin:6px 0 0}
   .mapcard header .sp{flex:1}
   .maphint{font:500 12px var(--sans);color:var(--muted)}
   .ghost{background:transparent;border:1px solid var(--line);color:var(--cream);border-radius:10px;padding:8px 14px;font:600 13px var(--sans);cursor:pointer}
   .ghost:hover{border-color:var(--gold)}
-  .mapwrap{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);align-self:center}
-  #mapcv{display:block;cursor:crosshair;image-rendering:pixelated}
+  .maprow{display:flex;gap:14px;min-height:0;flex:1;justify-content:center}
+  .mapwrap{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);height:100%;aspect-ratio:480/528;max-width:100%;flex:0 1 auto;background:#10353a}
+  #mapcv{display:block;cursor:grab;touch-action:none}
+  #mapcv.drag{cursor:grabbing}
+  .mapzoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:6px}
+  .mapzoom button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:rgba(15,50,54,.94);color:var(--cream);font:600 17px var(--sans);cursor:pointer;display:grid;place-items:center;padding:0}
+  .mapzoom button:hover{border-color:var(--gold);color:var(--gold)}
+  #whoPanel{width:252px;flex:none;display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(0,0,0,.16)}
+  .whohead{margin-bottom:10px}
+  .whohead b{display:block;font:600 15px var(--sans);color:var(--cream)}
+  .whohead span{font:500 11.5px var(--sans);color:var(--muted)}
+  #whoList{overflow-y:auto;display:flex;flex-direction:column;gap:7px;min-height:0}
+  .wrow{display:block;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:rgba(15,50,54,.6);cursor:pointer}
+  .wrow:hover,.wrow.on{border-color:var(--gold)}
+  .wrow b{display:block;font:600 13.5px var(--sans);color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wrow .wat{display:block;margin-top:1px;font:500 11.5px var(--sans);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wrow.away b{color:var(--muted)}
+  .whoacts{display:flex;gap:6px;margin-top:7px}
+  .whoacts button{flex:1;border:1px solid var(--line);background:transparent;color:var(--cream);border-radius:8px;padding:5px 0;font:600 11.5px var(--sans);cursor:pointer}
+  .whoacts button:hover{border-color:var(--gold);color:var(--gold)}
+  .whoacts button.go{background:var(--gold);color:#1c2a22;border-color:var(--gold)}
+  .whodot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:1px}
+  @media (max-width:820px){
+    .maprow{flex-direction:column;gap:10px}
+    .mapwrap{height:auto;width:100%;flex:0 0 auto}        /* let the campus aspect set the height */
+    #whoPanel{width:auto;flex:1 1 auto;min-height:92px;max-height:30vh;padding:10px}
+    #whoList{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:8px}
+    .wrow{min-width:178px;flex:none}
+    .mapcard{padding:12px 12px 14px;height:auto;max-height:96vh}
+    .mapcard header{gap:10px;margin-bottom:10px;align-items:center}
+    .mapcard header h2{font-size:19px;margin:2px 0 0;white-space:nowrap}
+    .mapcard header .eyebrow{font-size:9px}
+    .maphint{display:none}
+  }
   #maptip{position:absolute;pointer-events:none;background:var(--panel-solid);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font:500 12px var(--sans);color:var(--muted);white-space:nowrap;transform:translate(-50%,-120%)}
   #maptip b{display:block;font:600 15px var(--serif);color:var(--cream);margin-bottom:2px}
   @media (max-width:700px){ .card h1{font-size:40px} #place .name{font-size:22px} .keys{grid-template-columns:auto 1fr} }
@@ -270,7 +307,7 @@
 </head>
 <body>
 <div id="hud" class="hidden">
-  <div id="brand"><div class="mark">IITM CRAFT</div><div class="pill">Places <b id="cPlaces">0</b></div><div class="pill online off" id="onlinePill"><i class="dot"></i><b id="cOnline">Offline</b></div></div>
+  <div id="brand"><div class="mark">IITM CRAFT</div><div class="pill">Places <b id="cPlaces">0</b></div><div class="pill online off" id="onlinePill" role="button" tabindex="0" title="See who’s online and go to them"><i class="dot"></i><b id="cOnline">Offline</b></div></div>
   <div id="tools">
     <div class="icon" id="bMap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg><span>Map · M</span></div>
     <div class="icon" id="bTime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Time · T</span></div>
@@ -346,7 +383,7 @@
       <kbd>Esc</kbd><span>Pause</span><kbd>Space</kbd><span>Jump</span>
     </div>
     <button class="btn" id="bStart">Start exploring</button>
-    <div class="foot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras. <a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></div>
+    <div class="foot">Made purely for entertainment. Not affiliated with or endorsed by IIT Madras. <a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a> <a class="dev" href="https://www.linkedin.com/in/vijay-krishna-s-b68916283/" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M3.6 1.6a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM.9 6.3h5.4V16H.9V6.3Zm8 0h5.2v1.3h.07c.72-1.24 2.05-1.6 3.1-1.6V6c2.9 0 3.5 1.9 3.5 4.4V16h-5.4v-4.9c0-1.17-.02-2.68-1.63-2.68-1.63 0-1.88 1.27-1.88 2.59V16H8.9V6.3Z"/></svg></a></div>
   </div>
 </div>
 
@@ -400,10 +437,24 @@
     <header>
       <div><div class="eyebrow">Campus map</div><h2>IIT Madras</h2></div>
       <div class="sp"></div>
-      <div class="maphint"><span class="desk">Click</span><span class="touch-word">Tap</span> any place or spot to jump there</div>
+      <div class="maphint"><span class="desk">Click a place or a person to go there · scroll to zoom · drag to pan</span><span class="touch-word">Tap a place or a person to go there · pinch to zoom</span></div>
       <button class="ghost" id="bMapClose">Close<span class="desk"> · M</span></button>
     </header>
-    <div class="mapwrap"><canvas id="mapcv"></canvas><div id="maptip" class="hidden"></div></div>
+    <div class="maprow">
+      <div class="mapwrap">
+        <canvas id="mapcv"></canvas>
+        <div id="maptip" class="hidden"></div>
+        <div class="mapzoom">
+          <button id="mzIn" title="Zoom in" aria-label="Zoom in">+</button>
+          <button id="mzOut" title="Zoom out" aria-label="Zoom out">&minus;</button>
+          <button id="mzFit" title="Whole campus" aria-label="Whole campus">&#9635;</button>
+        </div>
+      </div>
+      <aside id="whoPanel">
+        <div class="whohead"><b id="whoCount">Nobody else online</b><span id="whoHint">People show up here as they join</span></div>
+        <div id="whoList"></div>
+      </aside>
+    </div>
   </div>
 </div>
 
@@ -2390,95 +2441,300 @@ const MS = 2;
 mapcv.width = WX*MS; mapcv.height = WZ*MS;
 let hoverPlace = null;
 const ZONES = [['Academic Zone',[1250,4520]],['Hostel Zone',[3150,5480]],['Residential Zone',[3650,2350]],['Research Park',[4600,4380]],['Guindy National Park',[1500,2800]]];
-function sizeMap(){
-  const short = innerHeight < 520, maxH = innerHeight - (short ? 96 : 150), maxW = innerWidth - (short ? 40 : 80), s = Math.min(maxH/WZ, maxW/WX);
-  mapcv.style.width = WX*s + 'px'; mapcv.style.height = WZ*s + 'px';
+// The map is a window onto the campus: `view` is the top-left corner in world blocks plus a zoom,
+// so markers can be drawn at a constant size on screen however far in you are.
+const view = { x:0, z:0, zoom:1, fit:1 };
+let mapW = 1, mapH = 1, whoSel = 0;
+const toS = (wx, wz) => [(wx - view.x)*view.zoom, (wz - view.z)*view.zoom];
+const toW = (sx, sz) => [sx/view.zoom + view.x, sz/view.zoom + view.z];
+function clampView(){
+  view.zoom = Math.max(view.fit, Math.min(view.fit*7, view.zoom));
+  const vw = mapW/view.zoom, vh = mapH/view.zoom;
+  view.x = vw >= WX ? (WX - vw)/2 : Math.max(0, Math.min(WX - vw, view.x));
+  view.z = vh >= WZ ? (WZ - vh)/2 : Math.max(0, Math.min(WZ - vh, view.z));
 }
+function zoomAt(factor, sx, sz){
+  const [wx, wz] = toW(sx, sz);
+  view.zoom = Math.max(view.fit, Math.min(view.fit*7, view.zoom*factor));
+  view.x = wx - sx/view.zoom; view.z = wz - sz/view.zoom;
+  clampView(); drawMap();
+}
+function centreOn(wx, wz, zoom){
+  if (zoom) view.zoom = Math.max(view.fit, Math.min(view.fit*7, zoom));
+  view.x = wx - mapW/view.zoom/2; view.z = wz - mapH/view.zoom/2;
+  clampView(); drawMap();
+}
+function sizeMap(){
+  const r = mapcv.parentElement.getBoundingClientRect();
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  mapW = Math.max(120, r.width); mapH = Math.max(120, r.height);
+  mapcv.width = Math.round(mapW*dpr); mapcv.height = Math.round(mapH*dpr);
+  mapcv.style.width = mapW + 'px'; mapcv.style.height = mapH + 'px';
+  mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const fit = Math.min(mapW/WX, mapH/WZ);
+  const wasFit = view.fit === 1 || Math.abs(view.zoom - view.fit) < 1e-6;
+  view.fit = fit;
+  if (wasFit) view.zoom = fit;
+  clampView();
+}
+function fitMap(){ view.zoom = view.fit; clampView(); drawMap(); }
+
+// Everyone on campus: the roster from the server, using the smooth local position when we have one.
+function peopleOnMap(){
+  const out = [];
+  for (const w of net.who) {
+    if (w.id === net.id) continue;
+    const p = net.peers.get(w.id);
+    out.push({ id:w.id, name:w.name, x: p ? p.x : w.x, z: p ? p.z : w.z, away:w.away, veh:w.veh });
+  }
+  return out;
+}
+const placeNear = (x, z) => {
+  let best = null, bd = 1e9;
+  for (const p of placeList) { const d = Math.hypot(p.cx - x, p.cz - z); if (d < bd) { bd = d; best = p; } }
+  return best && bd < 60 ? best : null;
+};
+
 function drawMap(){
   if (mapDirty) { mbctx.putImageData(mimg,0,0); mapDirty = false; }
-  mctx.imageSmoothingEnabled = false;
-  mctx.drawImage(mapBase,0,0,WX*MS,WZ*MS);
-  mctx.fillStyle = 'rgba(16,53,58,.12)'; mctx.fillRect(0,0,mapcv.width,mapcv.height);
+  const Z = view.zoom;
+  mctx.save();
+  mctx.clearRect(0, 0, mapW, mapH);
+  // the campus itself; smoothed when zoomed out, crisp blocks when you are right in
+  mctx.imageSmoothingEnabled = Z < view.fit*2.5;
+  mctx.drawImage(mapBase, -view.x*Z, -view.z*Z, WX*Z, WZ*Z);
+  mctx.fillStyle = 'rgba(16,53,58,.10)'; mctx.fillRect(0, 0, mapW, mapH);
   mctx.textAlign = 'center'; mctx.textBaseline = 'middle';
-  for (const [n,at] of ZONES) {
-    const [x,z] = Pf(at);
-    mctx.font = `italic 600 ${n.includes('Guindy') ? 20 : 22}px ${SERIF}`;
-    mctx.lineWidth = 5; mctx.strokeStyle = 'rgba(16,53,58,.55)'; mctx.strokeText(n, x*MS, z*MS);
-    mctx.fillStyle = '#f3ead8'; mctx.fillText(n, x*MS, z*MS);
+
+  const vis = (x, z, m = 40) => { const [sx, sz] = toS(x, z); return sx > -m && sz > -m && sx < mapW+m && sz < mapH+m; };
+  // Labels claim a box before they are drawn, so a crowded corner of campus stays readable
+  // instead of printing names on top of each other.
+  const taken = [];
+  const claim = (sx, sz, w, h) => {
+    const b = { x0:sx-w/2-3, x1:sx+w/2+3, y0:sz-h/2-2, y1:sz+h/2+2 };
+    for (const t of taken) if (b.x0 < t.x1 && b.x1 > t.x0 && b.y0 < t.y1 && b.y1 > t.y0) return false;
+    taken.push(b); return true;
+  };
+  const label = (t, sx, sz, font, fill, halo = 4.5, must = true) => {
+    mctx.font = font;
+    const w = mctx.measureText(t).width, h = parseInt(font, 10) || 12;
+    if (!claim(sx, sz, w, h) && !must) return false;
+    mctx.lineWidth = halo; mctx.strokeStyle = 'rgba(10,32,35,.85)';
+    mctx.strokeText(t, sx, sz); mctx.fillStyle = fill; mctx.fillText(t, sx, sz);
+    return true;
+  };
+  // people matter most, so their names claim their space first
+  const folk = peopleOnMap().filter(w => vis(w.x, w.z));
+  mctx.font = '600 12px ' + SANS;
+  for (const w of folk) { const [sx, sz] = toS(w.x, w.z); claim(sx, sz - 15, mctx.measureText(w.name).width, 12); }
+
+  // zone names: large and faint, stepping back once you zoom in for detail
+  const zoneA = Z < view.fit*2.2 ? 1 : Math.max(0, 1 - (Z/view.fit - 2.2)/1.2);
+  if (zoneA > .02) {
+    mctx.globalAlpha = zoneA*.85;
+    for (const [n, at] of ZONES) {
+      const [x, z] = Pf(at), [sx, sz] = toS(x, z);
+      label(n, sx, sz, 'italic 600 ' + (n.includes('Guindy') ? 15 : 17) + 'px ' + SERIF, '#f3ead8', 5, false);
+    }
+    mctx.globalAlpha = 1;
   }
-  for (const b of buggies) {
-    if (b.kind !== 'buggy') continue;   // the plane is drawn last, on top of everything
-    mctx.save(); mctx.translate(b.x*MS, b.z*MS); mctx.rotate(-b.heading);
-    mctx.fillStyle = '#2f6db3'; mctx.strokeStyle = '#f3ead8'; mctx.lineWidth = 1.5;
-    mctx.beginPath(); mctx.roundRect(-3.5,-5.5,7,11,2); mctx.fill(); mctx.stroke(); mctx.restore();
-  }
+
+  // places: a small dot each, named once there is room for the text
+  const named = Z > view.fit*1.9;
   for (const p of placeList) {
-    const x = (p.cx+.5)*MS, z = (p.cz+.5)*MS, r = p === hoverPlace ? 8 : p.major ? 6 : 4.5;
-    mctx.beginPath(); mctx.arc(x,z,r,0,7);
-    mctx.fillStyle = p.found ? '#e8c170' : 'rgba(243,234,216,.35)'; mctx.fill();
-    mctx.lineWidth = 2; mctx.strokeStyle = '#10353a'; mctx.stroke();
+    if (!vis(p.cx, p.cz)) continue;
+    const [sx, sz] = toS(p.cx+.5, p.cz+.5);
+    const hov = p === hoverPlace, r = hov ? 6 : p.major ? 5 : 3.5;
+    mctx.beginPath(); mctx.arc(sx, sz, r, 0, 7);
+    mctx.fillStyle = p.found ? '#e8c170' : 'rgba(243,234,216,.42)'; mctx.fill();
+    mctx.lineWidth = 1.8; mctx.strokeStyle = 'rgba(16,53,58,.9)'; mctx.stroke();
+    if (hov || (named && p.major) || Z > view.fit*3.2)
+      label(p.n, sx, sz - r - 9, '600 ' + (p.major ? 12 : 11) + 'px ' + SANS, hov ? '#ffffff' : '#e9e0cd', 4, hov);
   }
-  mctx.font = `600 13px ${SANS}`;
-  for (const p of net.peers.values()) {
-    mctx.beginPath(); mctx.arc(p.x*MS, p.z*MS, 5, 0, 7); mctx.fillStyle = '#6fd08c'; mctx.fill(); mctx.lineWidth = 2; mctx.strokeStyle = '#10353a'; mctx.stroke();
-    mctx.lineWidth = 4; mctx.strokeText(p.name, p.x*MS, p.z*MS - 13); mctx.fillStyle = '#f3ead8'; mctx.fillText(p.name, p.x*MS, p.z*MS - 13);
+
+  // e-buggies
+  for (const b of buggies) {
+    if (b.kind !== 'buggy' || !vis(b.x, b.z)) continue;
+    const [sx, sz] = toS(b.x, b.z);
+    mctx.save(); mctx.translate(sx, sz); mctx.rotate(-b.heading);
+    mctx.fillStyle = '#2f6db3'; mctx.strokeStyle = 'rgba(243,234,216,.9)'; mctx.lineWidth = 1.3;
+    mctx.beginPath(); mctx.roundRect(-3,-4.5,6,9,2); mctx.fill(); mctx.stroke(); mctx.restore();
   }
-  // The plane goes on last so no building dot or player can hide it, with a ring and a name.
+
+  // the plane
   const pln = thePlane();
-  if (pln) {
-    const px = pln.x*MS, pz = pln.z*MS;
-    mctx.beginPath(); mctx.arc(px, pz, 15, 0, 7);
-    mctx.fillStyle = 'rgba(192,57,43,.22)'; mctx.fill();
-    mctx.lineWidth = 2; mctx.strokeStyle = '#c0392b'; mctx.stroke();
-    mctx.save(); mctx.translate(px, pz); mctx.rotate(-pln.heading);
-    mctx.fillStyle = '#c0392b'; mctx.strokeStyle = '#f3ead8'; mctx.lineWidth = 1.8;
-    mctx.beginPath(); mctx.moveTo(0,11); mctx.lineTo(11,-2); mctx.lineTo(2.5,-2); mctx.lineTo(2.5,-10); mctx.lineTo(-2.5,-10); mctx.lineTo(-2.5,-2); mctx.lineTo(-11,-2); mctx.closePath();
+  if (pln && vis(pln.x, pln.z)) {
+    const [sx, sz] = toS(pln.x, pln.z);
+    mctx.beginPath(); mctx.arc(sx, sz, 13, 0, 7);
+    mctx.fillStyle = 'rgba(192,57,43,.20)'; mctx.fill();
+    mctx.lineWidth = 1.8; mctx.strokeStyle = '#c0392b'; mctx.stroke();
+    mctx.save(); mctx.translate(sx, sz); mctx.rotate(-pln.heading);
+    mctx.fillStyle = '#c0392b'; mctx.strokeStyle = '#f3ead8'; mctx.lineWidth = 1.6;
+    mctx.beginPath(); mctx.moveTo(0,9); mctx.lineTo(9,-1.5); mctx.lineTo(2,-1.5); mctx.lineTo(2,-8); mctx.lineTo(-2,-8); mctx.lineTo(-2,-1.5); mctx.lineTo(-9,-1.5); mctx.closePath();
     mctx.fill(); mctx.stroke(); mctx.restore();
-    const lbl = pln.air ? 'Plane · flying' : 'Plane';
-    mctx.font = `700 14px ${SANS}`; mctx.lineWidth = 4.5; mctx.strokeStyle = '#10353a';
-    mctx.strokeText(lbl, px, pz - 24); mctx.fillStyle = '#ffd9d2'; mctx.fillText(lbl, px, pz - 24);
+    label(pln.air ? 'Plane · flying' : 'Plane', sx, sz - 21, '700 12px ' + SANS, '#ffd9d2');
   }
+
+  // people, on top of everything, with a ring on whoever is picked in the list
+  for (const w of folk) {
+    const [sx, sz] = toS(w.x, w.z);
+    if (w.id === whoSel) {
+      mctx.beginPath(); mctx.arc(sx, sz, 15, 0, 7);
+      mctx.fillStyle = 'rgba(232,193,112,.22)'; mctx.fill();
+      mctx.lineWidth = 2; mctx.strokeStyle = '#e8c170'; mctx.stroke();
+    }
+    mctx.beginPath(); mctx.arc(sx, sz, 6, 0, 7);
+    mctx.fillStyle = w.away ? '#7d9b86' : '#6fd08c'; mctx.fill();
+    mctx.lineWidth = 2; mctx.strokeStyle = 'rgba(16,53,58,.95)'; mctx.stroke();
+    if (w.veh) { mctx.beginPath(); mctx.arc(sx, sz, 2.2, 0, 7); mctx.fillStyle = '#10353a'; mctx.fill(); }
+    label(w.name, sx, sz - 15, '600 12px ' + SANS, w.away ? '#b9c8bd' : '#ffffff');
+  }
+
+  // you
   const heading = driving ? driving.heading : student ? student.facing : yaw+Math.PI;
-  mctx.save(); mctx.translate(player.pos.x*MS, player.pos.z*MS); mctx.rotate(-heading);
-  mctx.beginPath(); mctx.moveTo(0,14); mctx.lineTo(9,-9); mctx.lineTo(0,-4); mctx.lineTo(-9,-9); mctx.closePath();
-  mctx.fillStyle = '#ffffff'; mctx.fill(); mctx.lineWidth = 2.5; mctx.strokeStyle = '#10353a'; mctx.stroke();
+  const [px, pz] = toS(player.pos.x, player.pos.z);
+  mctx.save(); mctx.translate(px, pz); mctx.rotate(-heading);
+  mctx.beginPath(); mctx.moveTo(0,12); mctx.lineTo(8,-8); mctx.lineTo(0,-3.5); mctx.lineTo(-8,-8); mctx.closePath();
+  mctx.fillStyle = '#ffffff'; mctx.fill(); mctx.lineWidth = 2.2; mctx.strokeStyle = '#10353a'; mctx.stroke();
+  mctx.restore();
+  label('You', px, pz + 19, '700 11px ' + SANS, '#ffffff', 4);
   mctx.restore();
 }
+
+// ---------- who is online ----------
+function whoRefresh(){
+  const list = $('whoList'), people = peopleOnMap();
+  const dist = p => Math.hypot(p.x-player.pos.x, p.z-player.pos.z);
+  people.sort((a,b) => dist(a) - dist(b));
+  $('whoCount').textContent = people.length ? (people.length + 1) + ' on campus' : 'You are the only one here';
+  $('whoHint').textContent = people.length ? 'Tap someone to find them or go to them' : 'Others show up here as they join';
+  const sig = people.map(p => p.id + ':' + Math.round(p.x) + ':' + Math.round(p.z) + ':' + p.away).join('|') + '#' + whoSel;
+  if (sig === list.dataset.sig) return;
+  list.dataset.sig = sig;
+  list.innerHTML = '';
+  for (const w of people) {
+    const d = dist(w), at = placeNear(w.x, w.z);
+    const row = document.createElement('div');
+    row.className = 'wrow' + (w.away ? ' away' : '') + (w.id === whoSel ? ' on' : '');
+    const b = document.createElement('b');
+    const dot = document.createElement('i'); dot.className = 'whodot'; dot.style.background = w.away ? '#7d9b86' : '#6fd08c';
+    b.append(dot, document.createTextNode(w.name));
+    const where = document.createElement('span'); where.className = 'wat';
+    where.textContent = (at ? at.n : 'Out on the campus') + ' · ' + (d < 12 ? 'right here' : Math.round(d*5) + ' m away') + (w.away ? ' · idle' : '');
+    row.append(b, where);
+    const acts = document.createElement('div'); acts.className = 'whoacts';
+    const find = document.createElement('button'); find.textContent = 'Show';
+    find.onclick = e => { e.stopPropagation(); pickPerson(w); };
+    const go = document.createElement('button'); go.textContent = d < 12 ? 'Beside you' : 'Go there'; go.className = 'go';
+    go.disabled = d < 12;
+    go.onclick = e => { e.stopPropagation(); goToPerson(w); };
+    acts.append(find, go); row.append(acts);
+    row.onclick = () => pickPerson(w);
+    list.append(row);
+  }
+}
+function pickPerson(w){ whoSel = w.id; centreOn(w.x, w.z, Math.max(view.zoom, view.fit*3.5)); whoRefresh(); }
+
+// Go and stand next to someone, facing them. Chatting is then the usual Use prompt.
+function goToPerson(w){
+  const p = net.peers.get(w.id);
+  const tx = p ? p.x : w.x, tz = p ? p.z : w.z;
+  const a = Math.atan2(player.pos.x-tx, player.pos.z-tz);
+  teleport(tx + Math.sin(a)*2.5, tz + Math.cos(a)*2.5, a + Math.PI);
+  closeMap(true);
+  toast('Campus', 'Next to ' + w.name, TOUCH ? 'Tap Use to say hello.' : 'Press E to say hello.');
+}
+
 function mapPlaceAt(e){
-  const r = mapcv.getBoundingClientRect(), x = (e.clientX-r.left)/r.width*WX, z = (e.clientY-r.top)/r.height*WZ;
-  let best = null, bd = 6;
+  const r = mapcv.getBoundingClientRect();
+  const [x, z] = toW(e.clientX-r.left, e.clientY-r.top);
+  let best = null, bd = 9/view.zoom;
   for (const p of placeList) { const d = Math.hypot(p.cx+.5-x, p.cz+.5-z); if (d < bd) { bd = d; best = p; } }
   return best;
 }
-mapcv.addEventListener('mousemove', e => {
-  const p = mapPlaceAt(e);
+function mapPersonAt(e){
+  const r = mapcv.getBoundingClientRect();
+  const [x, z] = toW(e.clientX-r.left, e.clientY-r.top);
+  let best = null, bd = 11/view.zoom;
+  for (const w of peopleOnMap()) { const d = Math.hypot(w.x-x, w.z-z); if (d < bd) { bd = d; best = w; } }
+  return best;
+}
+
+// --- panning, pinching, zooming and picking ---
+let drag = null;
+const pointers = new Map();
+let pinch = 0;
+mapcv.addEventListener('pointerdown', e => {
+  mapcv.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
+  if (pointers.size === 2) { const [a,b] = [...pointers.values()]; pinch = Math.hypot(a.x-b.x, a.y-b.y); }
+  drag = { x:e.clientX, y:e.clientY, vx:view.x, vz:view.z, moved:0 };
+  mapcv.classList.add('drag');
+});
+mapcv.addEventListener('pointermove', e => {
+  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
+  if (pointers.size === 2 && pinch) {
+    const [a,b] = [...pointers.values()], d = Math.hypot(a.x-b.x, a.y-b.y), r = mapcv.getBoundingClientRect();
+    if (d > 4) { zoomAt(d/pinch, (a.x+b.x)/2 - r.left, (a.y+b.y)/2 - r.top); pinch = d; }
+    if (drag) drag.moved = 99;
+    return;
+  }
+  if (drag) {
+    const dx = e.clientX-drag.x, dy = e.clientY-drag.y;
+    drag.moved = Math.max(drag.moved, Math.abs(dx)+Math.abs(dy));
+    view.x = drag.vx - dx/view.zoom; view.z = drag.vz - dy/view.zoom;
+    clampView(); drawMap();
+    return;
+  }
+  const p = mapPlaceAt(e), person = mapPersonAt(e);
   if (p !== hoverPlace) { hoverPlace = p; drawMap(); }
-  if (!p) { tip.classList.add('hidden'); return; }
+  if (!p && !person) { tip.classList.add('hidden'); return; }
   const r = mapcv.getBoundingClientRect(), wr = mapcv.parentElement.getBoundingClientRect();
-  tip.style.left = ((p.cx+.5)/WX*r.width + r.left - wr.left) + 'px';
-  tip.style.top = ((p.cz+.5)/WZ*r.height + r.top - wr.top) + 'px';
-  tip.innerHTML = `<b></b><span></span>`;
-  tip.children[0].textContent = p.n;
-  tip.children[1].textContent = `${p.z} · Click to go there`;
+  const [sx, sz] = person ? toS(person.x, person.z) : toS(p.cx+.5, p.cz+.5);
+  tip.style.left = (sx + r.left - wr.left) + 'px';
+  tip.style.top = (sz + r.top - wr.top) + 'px';
+  tip.innerHTML = '<b></b><span></span>';
+  if (person) {
+    const at = placeNear(person.x, person.z);
+    tip.children[0].textContent = person.name;
+    tip.children[1].textContent = (at ? at.n : 'Out on the campus') + ' · click to go to them';
+  } else {
+    tip.children[0].textContent = p.n;
+    tip.children[1].textContent = p.z + ' · click to go there';
+  }
   tip.classList.remove('hidden');
 });
-mapcv.addEventListener('mouseleave', () => { hoverPlace = null; tip.classList.add('hidden'); drawMap(); });
-mapcv.addEventListener('click', e => {
+function mapRelease(e){
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) pinch = 0;
+  mapcv.classList.remove('drag');
+  const d = drag; drag = null;
+  if (!d || d.moved > 6) return;                 // that was a drag, not a tap
+  const person = mapPersonAt(e);
+  if (person) return goToPerson(person);
   const p = mapPlaceAt(e);
-  if (p) teleport(p.front[0]+.5, p.front[1]+.5, p.front[1] > p.cz ? 0 : Math.PI);
-  else {
-    // anywhere else on the map: land on the ground at that spot
-    const r = mapcv.getBoundingClientRect(), x = (e.clientX-r.left)/r.width*WX, z = (e.clientY-r.top)/r.height*WZ;
-    if (x < 4 || z < 4 || x > WX-4 || z > WZ-4) return;
-    teleport(x, z);
-  }
-  closeMap(true);
-});
+  if (p) { teleport(p.front[0]+.5, p.front[1]+.5, p.front[1] > p.cz ? 0 : Math.PI); return closeMap(true); }
+  const r = mapcv.getBoundingClientRect();
+  const [x, z] = toW(e.clientX-r.left, e.clientY-r.top);
+  if (x < 4 || z < 4 || x > WX-4 || z > WZ-4) return;
+  teleport(x, z); closeMap(true);
+}
+mapcv.addEventListener('pointerup', mapRelease);
+mapcv.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); pinch = 0; drag = null; mapcv.classList.remove('drag'); });
+mapcv.addEventListener('pointerleave', () => { hoverPlace = null; tip.classList.add('hidden'); drawMap(); });
+mapcv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = mapcv.getBoundingClientRect();
+  zoomAt(Math.exp(-e.deltaY*.0016), e.clientX-r.left, e.clientY-r.top);
+}, { passive:false });
+$('mzIn').onclick = () => zoomAt(1.6, mapW/2, mapH/2);
+$('mzOut').onclick = () => zoomAt(1/1.6, mapW/2, mapH/2);
+$('mzFit').onclick = fitMap;
 
 // ============================================================
 //  Multiplayer
 // ============================================================
-const net = { ws:null, id:0, online:0, status:'offline', peers:new Map(), sendT:0, name:'', kind:'boy', retry:0,
+const net = { ws:null, id:0, online:0, status:'offline', peers:new Map(), who:[], whoT:0, sendT:0, name:'', kind:'boy', retry:0,
   chatWith:0, chatName:'', pendingReq:null, reqTimer:0, lastReq:0 };
 function netUrl(){
   const q = new URLSearchParams(location.search).get('server');
@@ -2531,6 +2787,11 @@ function onNet(m){
       if (m.race) onSwim(m.race);
       if (m.rec) act.rec = m.rec;
       if (act.seated) nsend({ t:'sit', tid:act.seated.t.tid, seat:act.seated.i });
+      break;
+    case 'who':
+      net.who = m.ps.map(([id, name, x, z, away, veh]) => ({ id, name, x, z, away:!!away, veh:!!veh }));
+      net.online = m.n; setOnline();
+      if (state === 'map') { whoRefresh(); drawMap(); }
       break;
     case 'full': toast('Server', 'Campus is full', 'Too many students online. Try again in a few minutes.'); break;
     case 'bye':
@@ -2866,7 +3127,11 @@ function pauseGame(){
 function honk(){ if (!driving) return; if (driving.kind === 'cycle') sfx.bell(); else { sfx.horn(); scareUntil = performance.now() + 1500; } }
 function toggleFly(){ if (driving) return; player.fly = !player.fly; player.vel.y = 0; $('mode').textContent = player.fly ? 'Flying' : 'Walking'; }
 function openMap(){
-  state = 'map'; sizeMap(); drawMap(); show('mapview', true); show('pause', false);
+  state = 'map'; show('mapview', true); show('pause', false);
+  sizeMap();                       // only meaningful once the card is on screen
+  if (net.who.length < 2) centreOn(player.pos.x, player.pos.z, view.fit);
+  drawMap(); whoRefresh();
+  nsend({ t:'who' }); net.whoT = 0;
   if (document.pointerLockElement) document.exitPointerLock();
 }
 // New students start on Sardar Patel Road, facing the Main Gate.
@@ -2893,6 +3158,10 @@ document.querySelectorAll('.who').forEach(b => b.onclick = () => {
 $('bStart').onclick = () => { if (state !== 'title') return; begin(chosen, playerName()); lock(); };
 $('bResume').onclick = lock;
 $('bUnstuck').onclick = () => { respawn(); lock(); };
+const openWho = e => { if (e) { e.preventDefault(); e.stopPropagation(); } if (state === 'play' || state === 'paused') openMap(); };
+$('onlinePill').addEventListener('click', openWho);
+$('onlinePill').addEventListener('touchend', openWho, { passive:false });
+$('onlinePill').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openWho(e); });
 $('bPlane').onclick = () => { if (recoverPlane(false)) lock(); };
 function openFeedback(){
   if (document.pointerLockElement) document.exitPointerLock();
@@ -3744,6 +4013,11 @@ renderer.setAnimationLoop(now => {
   }
   document.body.classList.toggle('playing', state === 'play');
   if (TOUCH && state === 'play') touchLabels();
+  if (state === 'map') {
+    // people move while you are looking, so keep the map and the list fresh
+    if ((net.whoT -= dt) <= 0) { net.whoT = 1.5; nsend({ t:'who' }); }
+    drawMap(); whoRefresh();
+  }
   updateActivities(dt);
   if ((cullT -= dt) <= 0) { cullT = .4; cullChunks(); }
   updateSky(dt);
@@ -3758,6 +4032,7 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
   stateNow: () => state, act: () => act,
+  view: () => ({ ...view, mapW, mapH }), whoSel: () => whoSel, openMapNow: openMap,
   skyGround: (x,z) => skyGround(x,z), blockId: (x,y,z) => get(Math.floor(x),Math.floor(y),Math.floor(z)), consts: () => ({ G, WX, WZ, WH, LOG, LEAVES }),
   peerDbg: () => [...net.peers.values()].map(p => ({ id:p.id, n:p.buf ? p.buf.length : 0, gap:Math.round(p.gap||0), off:Math.round(p.tOff||0),
     lag: p.buf && p.buf.length ? Math.round(performance.now() - Math.max(NET_DELAY, Math.min(400,(p.gap||0)*1.8)) - p.buf[p.buf.length-1].t) : null,
