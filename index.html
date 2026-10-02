@@ -2328,7 +2328,9 @@ function checkPlaces(){
     const d = Math.hypot(px-p.cx-.5, pz-p.cz-.5);
     if (d < p.r && d/p.r < bd) { best = p; bd = d/p.r; }
     if (d < nzd) { nzd = d; nearZone = p; }
-    if (!p.found && d < p.r) { p.found = true; toast('New place', p.n, p.f || p.z); updateCounts(); }
+    // Discovering a place still counts and still turns its map dot gold, but it no longer throws a
+    // card on screen: walking or flying across campus set off a constant stream of them.
+    if (!p.found && d < p.r) { p.found = true; updateCounts(); }
   }
   let zone, name;
   if (best) { zone = best.z; name = best.n; }

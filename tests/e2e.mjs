@@ -125,7 +125,9 @@ try {
   await A.evaluate(() => { const q = iitm.places().find(p => p.n === 'Gajendra Circle'); iitm.teleport(q.front[0] + .5, q.front[1] + .5, 0); });
   await sleep(500);
   check('Location card shows the current place', await until(async () => (await A.textContent('#pName')).includes('Gajendra Circle'), 3000), await A.textContent('#pName'));
-  check('Discovery toast appears', await until(() => A.evaluate(() => iitm.toasts().includes('Gajendra Circle')), 3000));
+  // finding a place counts, but no longer throws a card on screen
+  await sleep(800);
+  check('Discovering a place shows no pop-up', !(await A.evaluate(() => iitm.toasts().includes('Gajendra Circle'))));
   check('Places counter increments', /^[2-9]\d*\/87$|^\d{2}\/87$/.test(await A.textContent('#cPlaces')), await A.textContent('#cPlaces'));
 
   // campus map + fast travel
