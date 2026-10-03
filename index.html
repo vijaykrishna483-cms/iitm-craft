@@ -134,12 +134,6 @@
     body.touch #chat{right:62px;width:min(280px,calc(100vw - 90px))}
     body.touch #chatreq{right:62px;width:min(290px,calc(100vw - 90px))}
   }
-  @media (max-height:520px){
-    .mapcard{padding:10px 14px 14px}
-    .mapcard header{margin-bottom:8px;gap:12px}
-    .mapcard header .eyebrow{display:none}
-    .mapcard header h2{font-size:20px;margin:0}
-  }
   .tip{font:500 13.5px/1.55 var(--sans);color:var(--muted);margin:0 0 18px}
   .tip b{color:var(--cream)}
   @media (max-width:820px), (max-height:520px){
@@ -267,47 +261,47 @@
   @media (prefers-reduced-motion: reduce){ .stack i{animation:none;background:var(--gold)} }
 
   /* map */
-  #mapview{position:fixed;inset:0;background:rgba(8,26,29,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px}
-  .mapcard{background:var(--panel-solid);border:1px solid var(--line);border-radius:20px;padding:18px 20px 20px;box-shadow:0 30px 80px rgba(0,0,0,.4);display:flex;flex-direction:column;max-width:96vw;height:min(940px,94vh)}
-  .mapcard header{display:flex;align-items:flex-end;gap:24px;margin-bottom:14px}
-  .mapcard header h2{font:600 26px var(--serif);margin:6px 0 0}
-  .mapcard header .sp{flex:1}
-  .maphint{font:500 12px var(--sans);color:var(--muted)}
+  /* The card hugs the map: sizeMap() sets the map's size from the screen and the card follows,
+     so the title, the Close button and the map all share the same left and right edges. */
+  #mapview{position:fixed;inset:0;background:rgba(8,26,29,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center}
+  .mapcard{background:var(--panel-solid);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:12px}
+  .mapcard header{display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0}
+  .mtitle{min-width:0}
+  .mapcard header h2{font:600 24px/1.1 var(--serif);margin:5px 0 0;white-space:nowrap}
+  .maphint{transition:opacity .6s;position:absolute;left:10px;bottom:10px;max-width:calc(100% - 70px);font:500 11.5px var(--sans);color:var(--cream);background:rgba(15,50,54,.88);border:1px solid var(--line);border-radius:999px;padding:5px 11px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ghost{background:transparent;border:1px solid var(--line);color:var(--cream);border-radius:10px;padding:8px 14px;font:600 13px var(--sans);cursor:pointer}
   .ghost:hover{border-color:var(--gold)}
-  .maprow{display:flex;gap:14px;min-height:0;flex:1;justify-content:center}
-  .mapwrap{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);height:100%;aspect-ratio:480/528;max-width:100%;flex:0 1 auto;background:#10353a}
+  .mapwrap{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);flex:none;background:#10353a}
+  .maphint.gone{opacity:0}
   #mapcv{display:block;cursor:grab;touch-action:none}
   #mapcv.drag{cursor:grabbing}
   .mapzoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:6px}
   .mapzoom button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:rgba(15,50,54,.94);color:var(--cream);font:600 17px var(--sans);cursor:pointer;display:grid;place-items:center;padding:0}
   .mapzoom button:hover{border-color:var(--gold);color:var(--gold)}
-  #whoPanel{width:252px;flex:none;display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(0,0,0,.16)}
-  .whohead{margin-bottom:10px}
-  .whohead b{display:block;font:600 15px var(--sans);color:var(--cream)}
-  .whohead span{font:500 11.5px var(--sans);color:var(--muted)}
+  #whoview{position:fixed;inset:0;background:rgba(8,26,29,.6);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:70px 16px 16px}
+  .whocard{width:min(380px,100%);max-height:calc(100vh - 100px);display:flex;flex-direction:column;background:var(--panel-solid);border:1px solid var(--line);border-radius:18px;padding:16px 16px 14px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+  .whocard header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .whocard h2{font:600 22px var(--serif);margin:6px 0 0}
   #whoList{overflow-y:auto;display:flex;flex-direction:column;gap:7px;min-height:0}
-  .wrow{display:block;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:rgba(15,50,54,.6);cursor:pointer}
-  .wrow:hover,.wrow.on{border-color:var(--gold)}
-  .wrow b{display:block;font:600 13.5px var(--sans);color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .wrow .wat{display:block;margin-top:1px;font:500 11.5px var(--sans);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wrow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:8px 8px 8px 12px;background:rgba(0,0,0,.16)}
+  .wrow b{flex:1;min-width:0;font:600 14px var(--sans);color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .wrow.away b{color:var(--muted)}
-  .whoacts{display:flex;gap:6px;margin-top:7px}
-  .whoacts button{flex:1;border:1px solid var(--line);background:transparent;color:var(--cream);border-radius:8px;padding:5px 0;font:600 11.5px var(--sans);cursor:pointer}
-  .whoacts button:hover{border-color:var(--gold);color:var(--gold)}
-  .whoacts button.go{background:var(--gold);color:#1c2a22;border-color:var(--gold)}
+  .wrow button{flex:none;border:0;background:var(--gold);color:#1c2a22;border-radius:9px;padding:7px 14px;font:700 12.5px var(--sans);cursor:pointer}
+  .wrow button:hover{filter:brightness(1.06)}
+  .whoempty{font:500 13px/1.5 var(--sans);color:var(--muted);padding:10px 2px}
   .whodot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:1px}
   @media (max-width:820px){
-    .maprow{flex-direction:column;gap:10px}
-    .mapwrap{height:auto;width:100%;flex:0 0 auto}        /* let the campus aspect set the height */
-    #whoPanel{width:auto;flex:1 1 auto;min-height:92px;max-height:30vh;padding:10px}
-    #whoList{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:8px}
-    .wrow{min-width:178px;flex:none}
-    .mapcard{padding:12px 12px 14px;height:auto;max-height:96vh}
-    .mapcard header{gap:10px;margin-bottom:10px;align-items:center}
-    .mapcard header h2{font-size:19px;margin:2px 0 0;white-space:nowrap}
-    .mapcard header .eyebrow{font-size:9px}
-    .maphint{display:none}
+    #whoview{padding-top:56px}
+  }
+  /* phones and short screens: the map takes as much of the screen as it can */
+  @media (max-width:560px), (max-height:520px){
+    .mapcard{padding:10px;gap:8px;border-radius:16px}
+    .mapcard header .eyebrow{display:none}
+    .mapcard header h2{font-size:18px;margin:0}
+    .mapcard .ghost{padding:6px 12px}
+    .mapzoom{right:8px;bottom:8px;gap:5px}
+    .mapzoom button{width:30px;height:30px;font-size:15px;border-radius:8px}
+    .maphint{left:8px;bottom:8px;font-size:10.5px;padding:4px 9px}
   }
   #maptip{position:absolute;pointer-events:none;background:var(--panel-solid);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font:500 12px var(--sans);color:var(--muted);white-space:nowrap;transform:translate(-50%,-120%)}
   #maptip b{display:block;font:600 15px var(--serif);color:var(--cream);margin-bottom:2px}
@@ -448,26 +442,29 @@
 <div id="mapview" class="hidden">
   <div class="mapcard">
     <header>
-      <div><div class="eyebrow">Campus map</div><h2>IIT Madras</h2></div>
-      <div class="sp"></div>
-      <div class="maphint"><span class="desk">Click a place or a person to go there · scroll to zoom · drag to pan</span><span class="touch-word">Tap a place or a person to go there · pinch to zoom</span></div>
+      <div class="mtitle"><div class="eyebrow">Campus map</div><h2>IIT Madras</h2></div>
       <button class="ghost" id="bMapClose">Close<span class="desk"> · M</span></button>
     </header>
-    <div class="maprow">
-      <div class="mapwrap">
-        <canvas id="mapcv"></canvas>
-        <div id="maptip" class="hidden"></div>
-        <div class="mapzoom">
-          <button id="mzIn" title="Zoom in" aria-label="Zoom in">+</button>
-          <button id="mzOut" title="Zoom out" aria-label="Zoom out">&minus;</button>
-          <button id="mzFit" title="Whole campus" aria-label="Whole campus">&#9635;</button>
-        </div>
+    <div class="mapwrap">
+      <canvas id="mapcv"></canvas>
+      <div id="maptip" class="hidden"></div>
+      <div class="maphint"><span class="desk">Click a place to go there · scroll to zoom · drag to pan</span><span class="touch-word">Tap a place to go there</span></div>
+      <div class="mapzoom">
+        <button id="mzIn" title="Zoom in" aria-label="Zoom in">+</button>
+        <button id="mzOut" title="Zoom out" aria-label="Zoom out">&minus;</button>
+        <button id="mzFit" title="Whole campus" aria-label="Whole campus">&#9635;</button>
       </div>
-      <aside id="whoPanel">
-        <div class="whohead"><b id="whoCount">Nobody else online</b><span id="whoHint">People show up here as they join</span></div>
-        <div id="whoList"></div>
-      </aside>
     </div>
+  </div>
+</div>
+
+<div id="whoview" class="hidden">
+  <div class="whocard">
+    <header>
+      <div><div class="eyebrow">On campus now</div><h2 id="whoCount">Who’s online</h2></div>
+      <button class="ghost" id="bWhoClose">Close<span class="desk"> · Tab</span></button>
+    </header>
+    <div id="whoList"></div>
   </div>
 </div>
 
@@ -740,22 +737,25 @@ function lampPost(x,z){ if (get(x,G,z) !== PAVER || get(x,G+1,z)) return; fill(x
 const SEGS = [];
 function genRoads(){
   ROADS.forEach((r,ri) => { for (let i=0;i<r.pts.length-1;i++) { const [ax,az]=Pf(r.pts[i]), [bx,bz]=Pf(r.pts[i+1]); SEGS.push({ax,az,bx,bz,w:r.w,ri}); } });
+  // Each road keeps the footprint it always had (s.w + 2.5 from the centre is reserved, so every
+  // building, house and lake sits exactly where it did). The driving surface now takes most of that:
+  // carriageway out to s.w + 1.3, a footpath to s.w + 2.2, then a thin buffer.
   for (const pass of [0,1]) for (const s of SEGS) {
-    const m = s.w + 1.3;
+    const cw = s.w + 1.3, m = s.w + 2.2;
     for (let z=Math.floor(Math.min(s.az,s.bz)-m-1); z<=Math.ceil(Math.max(s.az,s.bz)+m+1); z++)
       for (let x=Math.floor(Math.min(s.ax,s.bx)-m-1); x<=Math.ceil(Math.max(s.ax,s.bx)+m+1); x++) {
         if (!inb(x,0,z)) continue;
         const [d, along] = segDist(x+.5,z+.5,s.ax,s.az,s.bx,s.bz);
         if (pass === 0) {
           if (d <= m && get(x,G,z) !== ROAD) levelCol(x,z,PAVER);
-          if (d <= m+1.2) reserved[z*WX+x] = 1;
-        } else if (d <= s.w) set(x,G,z, d < .5 && along % 7 < 3.5 ? CONCRETE : ROAD);
+          if (d <= s.w + 2.5) reserved[z*WX+x] = 1;
+        } else if (d <= cw) set(x,G,z, d < .5 && along % 7 < 3.5 ? CONCRETE : ROAD);
       }
   }
   for (const s of SEGS) {
     const L = Math.hypot(s.bx-s.ax, s.bz-s.az), ux = (s.bx-s.ax)/L, uz = (s.bz-s.az)/L;
     for (let t=9; t<L-4; t+=20) for (const side of [-1,1])
-      lampPost(Math.floor(s.ax+ux*t - uz*side*(s.w+.9)), Math.floor(s.az+uz*t + ux*side*(s.w+.9)));
+      lampPost(Math.floor(s.ax+ux*t - uz*side*(s.w+1.9)), Math.floor(s.az+uz*t + ux*side*(s.w+1.9)));   // on the footpath
   }
 }
 
@@ -1258,6 +1258,7 @@ function tree(x,z){
     const r = dy < 0 ? (big ? 3 : 2) : (big ? 2 : 1), y = y0+h+dy;
     for (let dz=-r;dz<=r;dz++) for (let dx=-r;dx<=r;dx++) {
       if (Math.abs(dx)===r && Math.abs(dz)===r && (dy===1 || rng()<.6)) continue;
+      if (y <= G+3) { const b = get(x+dx,G,z+dz); if (b === ROAD || b === CONCRETE) continue; }   // keep roads clear overhead
       if (!get(x+dx,y,z+dz)) set(x+dx,y,z+dz,LEAVES);
     }
   }
@@ -2457,7 +2458,7 @@ const ZONES = [['Academic Zone',[1250,4520]],['Hostel Zone',[3150,5480]],['Resid
 // The map is a window onto the campus: `view` is the top-left corner in world blocks plus a zoom,
 // so markers can be drawn at a constant size on screen however far in you are.
 const view = { x:0, z:0, zoom:1, fit:1 };
-let mapW = 1, mapH = 1, whoSel = 0;
+let mapW = 1, mapH = 1;
 const toS = (wx, wz) => [(wx - view.x)*view.zoom, (wz - view.z)*view.zoom];
 const toW = (sx, sz) => [sx/view.zoom + view.x, sz/view.zoom + view.z];
 function clampView(){
@@ -2478,9 +2479,17 @@ function centreOn(wx, wz, zoom){
   clampView(); drawMap();
 }
 function sizeMap(){
-  const r = mapcv.parentElement.getBoundingClientRect();
+  const card = mapcv.closest('.mapcard'), wrap = mapcv.parentElement, head = card.querySelector('header');
+  const cs = getComputedStyle(card), pad = parseFloat(cs.paddingLeft) || 0, gap = parseFloat(cs.rowGap) || 0;
+  const edge = innerWidth < 560 || innerHeight < 520 ? 8 : 24;           // breathing room around the card
+  const availW = innerWidth - 2*edge - 2*pad - 2;
+  const availH = innerHeight - 2*edge - 2*pad - 2 - head.offsetHeight - gap;
+  // as big as the screen allows, at the campus's own proportions, so the whole map fits with no bars
+  const h = Math.floor(Math.max(160, Math.min(availH, availW*WZ/WX, 1000))), w = Math.floor(h*WX/WZ);
+  wrap.style.width = w + 'px'; wrap.style.height = h + 'px';
+  card.style.width = (w + 2*pad + 2) + 'px';
   const dpr = Math.min(2, devicePixelRatio || 1);
-  mapW = Math.max(120, r.width); mapH = Math.max(120, r.height);
+  mapW = wrap.clientWidth; mapH = wrap.clientHeight;
   mapcv.width = Math.round(mapW*dpr); mapcv.height = Math.round(mapH*dpr);
   mapcv.style.width = mapW + 'px'; mapcv.style.height = mapH + 'px';
   mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -2528,18 +2537,20 @@ function drawMap(){
     for (const t of taken) if (b.x0 < t.x1 && b.x1 > t.x0 && b.y0 < t.y1 && b.y1 > t.y0) return false;
     taken.push(b); return true;
   };
+  const zr = mapcv.parentElement.querySelector('.mapzoom').getBoundingClientRect(), cr = mapcv.getBoundingClientRect();
+  const zoomX = zr.left - cr.left, zoomY = zr.top - cr.top;
   const label = (t, sx, sz, font, fill, halo = 4.5, must = true) => {
     mctx.font = font;
-    const w = mctx.measureText(t).width, h = parseInt(font, 10) || 12;
+    const w = mctx.measureText(t).width, h = +((font.match(/(\d+(?:\.\d+)?)px/) || [0, 12])[1]);   // the px size, not the weight
+    sx = Math.max(w/2 + 5, Math.min(mapW - w/2 - 5, sx));            // keep the whole word on the map
+    sz = Math.max(h/2 + 4, Math.min(mapH - h/2 - 4, sz));
+    if (sz + h/2 > zoomY - 4) sx = Math.max(w/2 + 5, Math.min(sx, zoomX - w/2 - 6));   // not under the zoom buttons
     if (!claim(sx, sz, w, h) && !must) return false;
     mctx.lineWidth = halo; mctx.strokeStyle = 'rgba(10,32,35,.85)';
     mctx.strokeText(t, sx, sz); mctx.fillStyle = fill; mctx.fillText(t, sx, sz);
     return true;
   };
-  // people matter most, so their names claim their space first
-  const folk = peopleOnMap().filter(w => vis(w.x, w.z));
-  mctx.font = '600 12px ' + SANS;
-  for (const w of folk) { const [sx, sz] = toS(w.x, w.z); claim(sx, sz - 15, mctx.measureText(w.name).width, 12); }
+
 
   // zone names: large and faint, stepping back once you zoom in for detail
   const zoneA = Z < view.fit*2.2 ? 1 : Math.max(0, 1 - (Z/view.fit - 2.2)/1.2);
@@ -2547,7 +2558,8 @@ function drawMap(){
     mctx.globalAlpha = zoneA*.85;
     for (const [n, at] of ZONES) {
       const [x, z] = Pf(at), [sx, sz] = toS(x, z);
-      label(n, sx, sz, 'italic 600 ' + (n.includes('Guindy') ? 15 : 17) + 'px ' + SERIF, '#f3ead8', 5, false);
+      const zf = mapW < 380 ? 12 : mapW < 560 ? 14 : 17;
+      label(n, sx, sz, 'italic 600 ' + (n.includes('Guindy') ? zf - 2 : zf) + 'px ' + SERIF, '#f3ead8', 5, false);
     }
     mctx.globalAlpha = 1;
   }
@@ -2588,21 +2600,6 @@ function drawMap(){
     label(pln.air ? 'Plane · flying' : 'Plane', sx, sz - 21, '700 12px ' + SANS, '#ffd9d2');
   }
 
-  // people, on top of everything, with a ring on whoever is picked in the list
-  for (const w of folk) {
-    const [sx, sz] = toS(w.x, w.z);
-    if (w.id === whoSel) {
-      mctx.beginPath(); mctx.arc(sx, sz, 15, 0, 7);
-      mctx.fillStyle = 'rgba(232,193,112,.22)'; mctx.fill();
-      mctx.lineWidth = 2; mctx.strokeStyle = '#e8c170'; mctx.stroke();
-    }
-    mctx.beginPath(); mctx.arc(sx, sz, 6, 0, 7);
-    mctx.fillStyle = w.away ? '#7d9b86' : '#6fd08c'; mctx.fill();
-    mctx.lineWidth = 2; mctx.strokeStyle = 'rgba(16,53,58,.95)'; mctx.stroke();
-    if (w.veh) { mctx.beginPath(); mctx.arc(sx, sz, 2.2, 0, 7); mctx.fillStyle = '#10353a'; mctx.fill(); }
-    label(w.name, sx, sz - 15, '600 12px ' + SANS, w.away ? '#b9c8bd' : '#ffffff');
-  }
-
   // you
   const heading = driving ? driving.heading : student ? student.facing : yaw+Math.PI;
   const [px, pz] = toS(player.pos.x, player.pos.z);
@@ -2617,44 +2614,46 @@ function drawMap(){
 // ---------- who is online ----------
 function whoRefresh(){
   const list = $('whoList'), people = peopleOnMap();
-  const dist = p => Math.hypot(p.x-player.pos.x, p.z-player.pos.z);
-  people.sort((a,b) => dist(a) - dist(b));
-  $('whoCount').textContent = people.length ? (people.length + 1) + ' on campus' : 'You are the only one here';
-  $('whoHint').textContent = people.length ? 'Tap someone to find them or go to them' : 'Others show up here as they join';
-  const sig = people.map(p => p.id + ':' + Math.round(p.x) + ':' + Math.round(p.z) + ':' + p.away).join('|') + '#' + whoSel;
+  people.sort((a,b) => a.name.localeCompare(b.name));
+  $('whoCount').textContent = people.length ? (people.length + 1) + ' on campus' : 'Who\u2019s online';
+  const sig = people.map(p => p.id + ':' + p.away).join('|');
   if (sig === list.dataset.sig) return;
   list.dataset.sig = sig;
   list.innerHTML = '';
+  if (!people.length) {
+    const e = document.createElement('div'); e.className = 'whoempty';
+    e.textContent = 'You are the only one here right now. Others show up as they join.';
+    return list.append(e);
+  }
   for (const w of people) {
-    const d = dist(w), at = placeNear(w.x, w.z);
     const row = document.createElement('div');
-    row.className = 'wrow' + (w.away ? ' away' : '') + (w.id === whoSel ? ' on' : '');
+    row.className = 'wrow' + (w.away ? ' away' : '');
     const b = document.createElement('b');
     const dot = document.createElement('i'); dot.className = 'whodot'; dot.style.background = w.away ? '#7d9b86' : '#6fd08c';
     b.append(dot, document.createTextNode(w.name));
-    const where = document.createElement('span'); where.className = 'wat';
-    where.textContent = (at ? at.n : 'Out on the campus') + ' · ' + (d < 12 ? 'right here' : Math.round(d*5) + ' m away') + (w.away ? ' · idle' : '');
-    row.append(b, where);
-    const acts = document.createElement('div'); acts.className = 'whoacts';
-    const find = document.createElement('button'); find.textContent = 'Show';
-    find.onclick = e => { e.stopPropagation(); pickPerson(w); };
-    const go = document.createElement('button'); go.textContent = d < 12 ? 'Beside you' : 'Go there'; go.className = 'go';
-    go.disabled = d < 12;
-    go.onclick = e => { e.stopPropagation(); goToPerson(w); };
-    acts.append(find, go); row.append(acts);
-    row.onclick = () => pickPerson(w);
+    const go = document.createElement('button'); go.textContent = 'Teleport';
+    go.onclick = () => goToPerson(w);
+    row.append(b, go);
     list.append(row);
   }
 }
-function pickPerson(w){ whoSel = w.id; centreOn(w.x, w.z, Math.max(view.zoom, view.fit*3.5)); whoRefresh(); }
+function openWho(){
+  state = 'who'; show('whoview', true); show('pause', false);
+  whoRefresh(); nsend({ t:'who' }); net.whoT = 2;
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function closeWho(relock){ show('whoview', false); state = 'paused'; if (relock) lock(); else show('pause', true); }
 
 // Go and stand next to someone, facing them. Chatting is then the usual Use prompt.
 function goToPerson(w){
-  const p = net.peers.get(w.id);
-  const tx = p ? p.x : w.x, tz = p ? p.z : w.z;
+  // The smooth local position is only good while their updates are still arriving: once they walk
+  // out of view range it freezes where we last saw them. Otherwise use the server's latest roster.
+  const r = net.who.find(o => o.id === w.id) || w, p = net.peers.get(w.id);
+  const fresh = p && p.buf && p.buf.length && performance.now() - p.buf[p.buf.length-1].t < 1500;
+  const tx = fresh ? p.x : r.x, tz = fresh ? p.z : r.z;
   const a = Math.atan2(player.pos.x-tx, player.pos.z-tz);
   teleport(tx + Math.sin(a)*2.5, tz + Math.cos(a)*2.5, a + Math.PI);
-  closeMap(true);
+  closeWho(true);
   toast('Campus', 'Next to ' + w.name, TOUCH ? 'Tap Use to say hello.' : 'Press E to say hello.');
 }
 
@@ -2663,13 +2662,6 @@ function mapPlaceAt(e){
   const [x, z] = toW(e.clientX-r.left, e.clientY-r.top);
   let best = null, bd = 9/view.zoom;
   for (const p of placeList) { const d = Math.hypot(p.cx+.5-x, p.cz+.5-z); if (d < bd) { bd = d; best = p; } }
-  return best;
-}
-function mapPersonAt(e){
-  const r = mapcv.getBoundingClientRect();
-  const [x, z] = toW(e.clientX-r.left, e.clientY-r.top);
-  let best = null, bd = 11/view.zoom;
-  for (const w of peopleOnMap()) { const d = Math.hypot(w.x-x, w.z-z); if (d < bd) { bd = d; best = w; } }
   return best;
 }
 
@@ -2699,19 +2691,15 @@ mapcv.addEventListener('pointermove', e => {
     clampView(); drawMap();
     return;
   }
-  const p = mapPlaceAt(e), person = mapPersonAt(e);
+  const p = mapPlaceAt(e);
   if (p !== hoverPlace) { hoverPlace = p; drawMap(); }
-  if (!p && !person) { tip.classList.add('hidden'); return; }
+  if (!p) { tip.classList.add('hidden'); return; }
   const r = mapcv.getBoundingClientRect(), wr = mapcv.parentElement.getBoundingClientRect();
-  const [sx, sz] = person ? toS(person.x, person.z) : toS(p.cx+.5, p.cz+.5);
+  const [sx, sz] = toS(p.cx+.5, p.cz+.5);
   tip.style.left = (sx + r.left - wr.left) + 'px';
   tip.style.top = (sz + r.top - wr.top) + 'px';
   tip.innerHTML = '<b></b><span></span>';
-  if (person) {
-    const at = placeNear(person.x, person.z);
-    tip.children[0].textContent = person.name;
-    tip.children[1].textContent = (at ? at.n : 'Out on the campus') + ' · click to go to them';
-  } else {
+  {
     tip.children[0].textContent = p.n;
     tip.children[1].textContent = p.z + ' · click to go there';
   }
@@ -2723,8 +2711,6 @@ function mapRelease(e){
   mapcv.classList.remove('drag');
   const d = drag; drag = null;
   if (!d || d.moved > 6) return;                 // that was a drag, not a tap
-  const person = mapPersonAt(e);
-  if (person) return goToPerson(person);
   const p = mapPlaceAt(e);
   if (p) { teleport(p.front[0]+.5, p.front[1]+.5, p.front[1] > p.cz ? 0 : Math.PI); return closeMap(true); }
   const r = mapcv.getBoundingClientRect();
@@ -2807,7 +2793,7 @@ function onNet(m){
     case 'who':
       net.who = m.ps.map(([id, name, x, z, away, veh]) => ({ id, name, x, z, away:!!away, veh:!!veh }));
       net.online = m.n; setOnline();
-      if (state === 'map') { whoRefresh(); drawMap(); }
+      if (state === 'who') whoRefresh();
       break;
     case 'full': toast('Server', 'Campus is full', 'Too many students online. Try again in a few minutes.'); break;
     case 'bye':
@@ -2879,6 +2865,7 @@ function upsertPeer(d){
 }
 function snapPeer([id,x,y,z,f,a,v,vh,st=0,away=0,ts=0]){
   const p = net.peers.get(id); if (!p) return;
+  p.seenAt = performance.now();   // the server only sends players within view range
   if (!!away !== !!p.away) {
     p.away = !!away; p.awaySince = performance.now();
     const old = p.tag.material.map; p.tag.material.map = tagTex(p.name, p.away); old.dispose();
@@ -3001,7 +2988,10 @@ function updatePeers(dt){
       if (v.kind === 'cycle') animateStudent(p.s, dt, p.speed, 'cycle');
     } else {
       p.f += angDiff(p.sf ?? p.tf, p.f)*k;
-      p.s.g.position.set(p.x, p.y, p.z); p.s.g.rotation.y = p.f; p.s.g.visible = d < 200 && !(p.away && performance.now() - p.awaySince > 60000);   // long-away players are hidden until they return
+      // Out of view range the server stops sending them, so they would freeze where we last saw
+      // them: hide them until they come back. Long-away players are hidden too.
+      const gone = performance.now() - (p.seenAt || 0) > 2500;
+      p.s.g.position.set(p.x, p.y, p.z); p.s.g.rotation.y = p.f; p.s.g.visible = d < 200 && !gone && !(p.away && performance.now() - p.awaySince > 60000);
       if (p.emote && (p.speed > .8 || emoteDone(p.emote))) p.emote = null;
       if (!emotePose(p.s, p.emote, dt)) animateStudent(p.s, dt, p.speed, p.a === 'sit' ? 'sit' : p.a === 'fly' ? 'fly' : p.a === 'air' ? 'air' : 'walk');
     }
@@ -3130,7 +3120,7 @@ function lock(){ if (TOUCH) enterPlay(); else canvasEl.requestPointerLock(); }
 function enterPlay(){
   if (state === 'title') setTimeout(() => $('hint').style.opacity = 0, 10000);
   if (TOUCH && state === 'title' && innerHeight > innerWidth) setTimeout(() => toast('Tip', 'Turn your phone sideways', 'The campus looks best in landscape.'), 1500);
-  state = 'play'; show('start', false); show('pause', false); show('mapview', false); show('feedback', false); show('hud', true);
+  state = 'play'; show('start', false); show('pause', false); show('mapview', false); show('whoview', false); show('feedback', false); show('hud', true);
   document.body.classList.add('playing');
   if (!TOUCH) $('tools').style.pointerEvents = 'none';
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
@@ -3142,12 +3132,13 @@ function pauseGame(){
 }
 function honk(){ if (!driving) return; if (driving.kind === 'cycle') sfx.bell(); else { sfx.horn(); scareUntil = performance.now() + 1500; } }
 function toggleFly(){ if (driving) return; player.fly = !player.fly; player.vel.y = 0; $('mode').textContent = player.fly ? 'Flying' : 'Walking'; }
+let hintT = 0;
 function openMap(){
   state = 'map'; show('mapview', true); show('pause', false);
+  const hint = document.querySelector('.maphint');
+  hint.classList.remove('gone'); clearTimeout(hintT); hintT = setTimeout(() => hint.classList.add('gone'), 4000);
   sizeMap();                       // only meaningful once the card is on screen
-  if (net.who.length < 2) centreOn(player.pos.x, player.pos.z, view.fit);
-  drawMap(); whoRefresh();
-  nsend({ t:'who' }); net.whoT = 0;
+  drawMap();
   if (document.pointerLockElement) document.exitPointerLock();
 }
 // New students start on Sardar Patel Road, facing the Main Gate.
@@ -3175,11 +3166,13 @@ $('bStart').onclick = () => { if (state !== 'title') return; begin(chosen, playe
 $('bResume').onclick = lock;
 $('bUnstuck').onclick = () => { respawn(); lock(); };
 $('upd').onclick = () => location.reload();
-$('bWho').onclick = () => openMap();
-const openWho = e => { if (e) { e.preventDefault(); e.stopPropagation(); } if (state === 'play' || state === 'paused') openMap(); };
-$('onlinePill').addEventListener('click', openWho);
-$('onlinePill').addEventListener('touchend', openWho, { passive:false });
-$('onlinePill').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openWho(e); });
+$('bWho').onclick = () => openWho();
+$('bWhoClose').onclick = () => closeWho(true);
+$('whoview').addEventListener('click', e => { if (e.target.id === 'whoview') closeWho(true); });
+const pillWho = e => { if (e) { e.preventDefault(); e.stopPropagation(); } if (state === 'play' || state === 'paused') openWho(); };
+$('onlinePill').addEventListener('click', pillWho);
+$('onlinePill').addEventListener('touchend', pillWho, { passive:false });
+$('onlinePill').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') pillWho(e); });
 $('bPlane').onclick = () => { if (recoverPlane(false)) lock(); };
 function openFeedback(){
   if (document.pointerLockElement) document.exitPointerLock();
@@ -3245,8 +3238,9 @@ document.addEventListener('keydown', e => {
   if (state === 'play' && net.chatWith && e.code === 'KeyX') { closeChat(true); return; }
   if (e.code === 'KeyM' && (state === 'play' || state === 'paused')) { openMap(); return; }
   // Tab: who is online. On a laptop the mouse is captured while you play, so the pill cannot be clicked.
-  if (e.code === 'Tab' && (state === 'play' || state === 'paused')) { e.preventDefault(); openMap(); return; }
-  if (state === 'map') { if (e.code === 'KeyM' || e.code === 'Tab') { e.preventDefault(); closeMap(true); } else if (e.code === 'Escape') closeMap(false); return; }
+  if (e.code === 'Tab' && (state === 'play' || state === 'paused')) { e.preventDefault(); openWho(); return; }
+  if (state === 'who') { if (e.code === 'Tab' || e.code === 'Escape') { e.preventDefault(); closeWho(e.code === 'Tab'); } return; }
+  if (state === 'map') { if (e.code === 'KeyM') { e.preventDefault(); closeMap(true); } else if (e.code === 'Escape') closeMap(false); return; }
   if (state !== 'play') return;
   if (e.code === 'Space') e.preventDefault();
   if (e.repeat) return;
@@ -4033,11 +4027,8 @@ renderer.setAnimationLoop(now => {
   }
   document.body.classList.toggle('playing', state === 'play');
   if (TOUCH && state === 'play') touchLabels();
-  if (state === 'map') {
-    // people move while you are looking, so keep the map and the list fresh
-    if ((net.whoT -= dt) <= 0) { net.whoT = 1.5; nsend({ t:'who' }); }
-    drawMap(); whoRefresh();
-  }
+  if (state === 'map') drawMap();
+  if (state === 'who' && (net.whoT -= dt) <= 0) { net.whoT = 2; nsend({ t:'who' }); }
   updateActivities(dt);
   if ((cullT -= dt) <= 0) { cullT = .4; cullChunks(); }
   updateSky(dt);
@@ -4052,8 +4043,8 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   setState: s => { state = s; show('start', false); show('hud', true); },
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
   stateNow: () => state, act: () => act,
-  view: () => ({ ...view, mapW, mapH }), whoSel: () => whoSel, openMapNow: openMap, toastNow: (a,b,c) => toast(a,b,c),
-  skyGround: (x,z) => skyGround(x,z), blockId: (x,y,z) => get(Math.floor(x),Math.floor(y),Math.floor(z)), consts: () => ({ G, WX, WZ, WH, LOG, LEAVES }),
+  view: () => ({ ...view, mapW, mapH }), openWhoNow: () => openWho(), openMapNow: openMap, toastNow: (a,b,c) => toast(a,b,c),
+  skyGround: (x,z) => skyGround(x,z), blockId: (x,y,z) => get(Math.floor(x),Math.floor(y),Math.floor(z)), consts: () => ({ G, WX, WZ, WH, LOG, LEAVES, ROAD, CONCRETE, PAVER }), roadSegs: () => SEGS.map(s => ({ ...s })),
   peerDbg: () => [...net.peers.values()].map(p => ({ id:p.id, n:p.buf ? p.buf.length : 0, gap:Math.round(p.gap||0), off:Math.round(p.tOff||0),
     lag: p.buf && p.buf.length ? Math.round(performance.now() - Math.max(NET_DELAY, Math.min(400,(p.gap||0)*1.8)) - p.buf[p.buf.length-1].t) : null,
     span: p.buf && p.buf.length > 1 ? Math.round(p.buf[p.buf.length-1].t - p.buf[0].t) : 0, x:+p.x.toFixed(2), z:+p.z.toFixed(2) })), fbBall: () => ({ ...fbLocal, pitch: fpitch }), cafes: () => cafes, nets: () => nets, poolR: () => poolR, race: () => race, oatRig: () => oatRig, board: () => boardAt, doEmote, startBatting, startFishing, lakeTileNear, openEvents, kick, blockInfo: (x,y,z) => { const p = { x, y, z }; const at = (dy) => DEF[get(Math.floor(x), Math.floor(y+dy), Math.floor(z))]?.n || 'air';
