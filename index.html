@@ -411,7 +411,6 @@
     </div>
     <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bWho">See who’s online</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
     <button class="linkish" id="bUnstuck">Stuck? Go back to the Main Gate</button>
-    <button class="linkish" id="bPlane">Plane stuck? Send it back to the airstrip</button>
     <div class="foot pausefoot"><a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a> <a class="dev" href="https://www.linkedin.com/in/vijay-krishna-s-b68916283/" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M3.6 1.6a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM.9 6.3h5.4V16H.9V6.3Zm8 0h5.2v1.3h.07c.72-1.24 2.05-1.6 3.1-1.6V6c2.9 0 3.5 1.9 3.5 4.4V16h-5.4v-4.9c0-1.17-.02-2.68-1.63-2.68-1.63 0-1.88 1.27-1.88 2.59V16H8.9V6.3Z"/></svg></a></div>
   </div>
 </div>
@@ -1591,6 +1590,8 @@ function flatSpot(x,z){
 const BUGGY_STOPS = ['Main Gate','Gajendra Circle','Central Library','Humanities & Sciences Block','Mechanical Sciences Block','Open Air Theatre',
   'Student Activity Centre','Himalaya Mess','Mandakini Hostel','Krishna Hostel','IITM Research Park','Velachery Gate','Taramani Gate',
   'Kendriya Vidyalaya','Shopping Centre','Chemplast Cricket Ground','Vanavani School','Manohar C Watsa Stadium'];
+// parked vehicles stand beside the road, never on the carriageway (r: how far round the spot to check)
+const offRoad = (x, z, r) => { for (let dz=-r;dz<=r;dz++) for (let dx=-r;dx<=r;dx++) { const b = get(x+dx,G,z+dz); if (b === ROAD || b === CONCRETE) return false; } return true; };
 function spawnBuggies(){
   for (const n of BUGGY_STOPS) {
     const p = placeList.find(q => q.n === n); if (!p) continue;
@@ -1598,7 +1599,7 @@ function spawnBuggies(){
     let spot = null;
     for (let r=2; r<=24 && !spot; r++) for (let i=0;i<24 && !spot;i++) {
       const a = i/24*Math.PI*2, x = Math.round(fx+Math.cos(a)*r), z = Math.round(fz+Math.sin(a)*r);
-      if (flatSpot(x,z) && !buggies.some(b => Math.hypot(b.x-x,b.z-z) < 4)) spot = [x,z];
+      if (flatSpot(x,z) && offRoad(x,z,1) && !buggies.some(b => Math.hypot(b.x-x,b.z-z) < 4)) spot = [x,z];
     }
     if (!spot) continue;
     const m = makeBuggy(), b = { ...m, kind:'buggy', x:spot[0]+.5, z:spot[1]+.5, y:G+1, heading:Math.round(rng()*4)*Math.PI/2, speed:0, steer:0 };
@@ -2194,7 +2195,7 @@ function spawnCycles(){
     const [fx,fz] = p.park || p.front; let placed = 0;
     for (let r=1; r<=14 && placed<2; r++) for (let i=0;i<20 && placed<2;i++) {
       const a = i/20*Math.PI*2, x = Math.round(fx+Math.cos(a)*r), z = Math.round(fz+Math.sin(a)*r);
-      if (!cycleSpot(x,z) || !cycleSpot(x+1,z) || buggies.some(b => Math.hypot(b.x-x,b.z-z) < (b.kind === 'cycle' ? 1.5 : 3.5))) continue;
+      if (!cycleSpot(x,z) || !cycleSpot(x+1,z) || !offRoad(x,z,0) || !offRoad(x+1,z,0) || buggies.some(b => Math.hypot(b.x-x,b.z-z) < (b.kind === 'cycle' ? 1.5 : 3.5))) continue;
       const m = makeCycle(CYCLE_COLORS[(rng()*CYCLE_COLORS.length)|0]);
       const v = { ...m, kind:'cycle', x:x+.5, z:z+.5, y:G+1, heading:0, speed:0, steer:0 };
       v.g.position.set(v.x,v.y,v.z); scene.add(v.g); buggies.push(v); placed++;
@@ -2792,7 +2793,7 @@ function findFocus(){
     else if (seats && !b.air) consider('ride', b, r, pl ? 'Get in the back seat' : 'Get in the e-buggy');           // someone's driving: passenger only
   }
   for (const b of buses) {
-    if (b.st && b.st.open) for (const d of busDoorPoints(b)) consider('bus', d, 3.4, 'Get on the bus' + (b.st.left ? ' · ' + b.st.left + 's' : ''), -1.5);
+    if (b.st && b.st.open) for (const d of busDoorPoints(b)) consider('bus', d, 3.4, 'Get on the bus' + (b.st.left ? ' · ' + b.st.left + 's' : ''), -4);
     else if (b.st && !b.hailing && b.st.sp > 1) consider('busHail', b, 9, 'Stop the bus', -.5);
   }
   if (!net.chatWith) for (const p of net.peers.values()) if (!p.vehicle) consider('chat', p, 4, `Chat with ${p.name}`, -1.5);
@@ -3676,7 +3677,6 @@ const pillWho = e => { if (e) { e.preventDefault(); e.stopPropagation(); } if (s
 $('onlinePill').addEventListener('click', pillWho);
 $('onlinePill').addEventListener('touchend', pillWho, { passive:false });
 $('onlinePill').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') pillWho(e); });
-$('bPlane').onclick = () => { if (recoverPlane(false)) lock(); };
 function openFeedback(){
   if (document.pointerLockElement) document.exitPointerLock();
   state = 'feedback'; show('pause', false); show('mapview', false); show('feedback', true);
@@ -4475,7 +4475,7 @@ async function boot(){
   await step(42, 'Planting the forest');       genTrees();
   placeList = PLACES.filter(p => !p.skip);
   placeList.forEach(p => { p.found = false; signboard(p); floatLabel(p); });
-  await step(46, 'Parking the e-buggies');     const strip = airstrip(); spawnBuggies(); spawnCycles(); spawnPlane(strip); spawnBuses(); buggies.forEach((b,i) => { b.vid = i; b.riders = [0,0,0]; }); spawnWildlife(); spawnCrocs(); buildActivities();
+  await step(46, 'Parking the e-buggies');     const strip = airstrip(); spawnBuses(); spawnBuggies(); spawnCycles(); spawnPlane(strip); buggies.forEach((b,i) => { b.vid = i; b.riders = [0,0,0]; }); spawnWildlife(); spawnCrocs(); buildActivities();
   for (let z=0;z<WZ;z++) for (let x=0;x<WX;x++) mapPixel(x,z);
   const all = [];
   for (let cz=0;cz<WZ/CS;cz++) for (let cx=0;cx<WX/CS;cx++) all.push([cx,cz]);
