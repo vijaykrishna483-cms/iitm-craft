@@ -87,6 +87,10 @@
   #tEmote{color:var(--cream)}
   .linkish{margin-top:14px;background:none;border:0;padding:4px 0;color:var(--muted);font:500 13px var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   .linkish:hover{color:var(--cream)}
+  .resets{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .ricon{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--line);color:var(--cream);border-radius:10px;padding:7px 12px;font:600 12.5px var(--sans);cursor:pointer}
+  .ricon:hover{border-color:var(--gold);color:var(--gold)}
+  .ricon svg{width:16px;height:16px;flex:none}
   /* nearby group chat */
   #feed{position:absolute;left:20px;bottom:112px;width:min(380px,44vw);display:flex;flex-direction:column;gap:6px;pointer-events:none}
   #feedLog{display:flex;flex-direction:column;gap:5px}
@@ -410,7 +414,10 @@
       <kbd>Tab</kbd><span>See who’s online</span><kbd>G</kbd><span>Plane back to the airstrip</span>
     </div>
     <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bWho">See who’s online</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
-    <button class="linkish" id="bUnstuck">Stuck? Go back to the Main Gate</button>
+    <div class="resets">
+      <button class="ricon" id="bUnstuck" title="Stuck? Back to the Main Gate" aria-label="Back to the Main Gate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Restart me</button>
+      <button class="ricon" id="bPlane" title="Send the plane back to its airstrip" aria-label="Plane back to its airstrip"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>Restart plane</button>
+    </div>
     <div class="foot pausefoot"><a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a> <a class="dev" href="https://www.linkedin.com/in/vijay-krishna-s-b68916283/" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M3.6 1.6a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM.9 6.3h5.4V16H.9V6.3Zm8 0h5.2v1.3h.07c.72-1.24 2.05-1.6 3.1-1.6V6c2.9 0 3.5 1.9 3.5 4.4V16h-5.4v-4.9c0-1.17-.02-2.68-1.63-2.68-1.63 0-1.88 1.27-1.88 2.59V16H8.9V6.3Z"/></svg></a></div>
   </div>
 </div>
@@ -1947,7 +1954,16 @@ function busSignTex(){
   return canvasTex(512, 64, g => {
     g.fillStyle = '#0b0c0e'; g.fillRect(0, 0, 512, 64);
     g.fillStyle = '#ffae2b'; g.font = `700 34px ${SANS}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText('IITM  CAMPUS  LOOP', 256, 34);
+    g.fillText('IIT Madras', 256, 34);
+  });
+}
+// the route board propped at the bottom of the windscreen
+function busRouteTex(){
+  return canvasTex(256, 72, g => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 72);
+    g.strokeStyle = '#1a2340'; g.lineWidth = 5; g.strokeRect(3, 3, 250, 66);
+    g.fillStyle = '#1a2340'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    fitFont(g, 'Main Gate – Mandakini', 700, SANS, 30, 230); g.fillText('Main Gate – Mandakini', 128, 37);
   });
 }
 function makeBus(){
@@ -2009,6 +2025,8 @@ function makeBus(){
   front.position.set(0, .86, 5.02); g.add(front);
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(W-.3, .26), new THREE.MeshBasicMaterial({ map: busSignTex() }));
   sign.position.set(0, 2.78, 5.03); g.add(sign);
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(1.0, .28), new THREE.MeshLambertMaterial({ map: busRouteTex() }));
+  board.position.set(.55, 1.52, 4.97); g.add(board);                // just behind the glass, kerb side
   // door leaves slide apart along the body
   for (const [c, w] of DOORS) for (const e of [-1, 1]) {
     const leaf = new THREE.Group(); leaf.position.set(hx + .02, 0, c + e*w/4);
@@ -3669,6 +3687,7 @@ document.querySelectorAll('.who').forEach(b => b.onclick = () => {
 $('bStart').onclick = () => { if (state !== 'title') return; begin(chosen, playerName()); lock(); };
 $('bResume').onclick = lock;
 $('bUnstuck').onclick = () => { respawn(); lock(); };
+$('bPlane').onclick = () => { if (recoverPlane(false)) lock(); };
 $('upd').onclick = () => location.reload();
 $('bWho').onclick = () => openWho();
 $('bWhoClose').onclick = () => closeWho(true);
