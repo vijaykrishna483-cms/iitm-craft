@@ -279,7 +279,9 @@ try {
     iitm.look(Math.atan2(dirs[0], dirs[1]), -.2);
     return true;
   });
-  await hold(A, 'KeyW', 2500);
+  // Long enough to climb out (about half a second), short enough not to wander off across the bank and
+  // down whatever lies beyond it; that used to depend on a tree happening to stop you.
+  await hold(A, 'KeyW', 1100);
   check('Walking into a lake bank climbs out of the water', lakeOut && await A.evaluate(() => !iitm.blockInfo(iitm.player.pos.x, iitm.player.pos.y, iitm.player.pos.z).inWater && iitm.player.pos.y >= 12.9), `y=${(await pos(A)).y.toFixed(2)}`);
   await A.evaluate(() => { iitm.setState('paused'); document.getElementById('pause').classList.remove('hidden'); });
   await A.click('#bUnstuck'); await sleep(400);
