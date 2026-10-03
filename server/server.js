@@ -152,7 +152,7 @@ wss.on('connection', ws => {
         seen: Date.now() };   // count them as active from the moment they join, or the idle sweep
                               // could take the seat of someone who has not sent a position yet
       players.set(me.id, me);
-      send(me, { t: 'welcome', id: me.id, online: players.size, build: BUILD,
+      send(me, { t: 'welcome', id: me.id, online: players.size, build: BUILD, now: Date.now(),
         players: [...players.values()].filter(p => p !== me && p.ready).map(pub),
         vehicles: [...vehicles].map(([id, v]) => [id, r2(v.x), r2(v.z), r2(v.h), v.driver, v.riders]), ...act.welcome() });
       return;
@@ -213,6 +213,11 @@ wss.on('connection', ws => {
         if (!v) vehicles.set(vid, { x, z, h, driver: 0, riders: [0, 0, 0] });
         else Object.assign(v, { x, z, h });
         broadcast(vehState(vid, vehicles.get(vid), true), me);
+        return;
+      }
+      case 'bus': {
+        // which campus bus and seat this player is riding (0 = none); the buses themselves run on the clock
+        me.busRide = Number.isInteger(m.ride) && m.ride >= 0 && m.ride < 1000 ? m.ride : 0;
         return;
       }
       case 'who': {
@@ -290,7 +295,7 @@ setInterval(() => {
   for (const p of players.values()) {
     const ps = [];
     for (const o of list) if (o !== p && Math.hypot(o.x - p.x, o.z - p.z) < VIEW_RANGE)
-      ps.push([o.id, r2(o.x), r2(o.y), r2(o.z), r2(o.f), o.a, o.v, r2(o.vh), o.seat, isAway(o), o.ts | 0]);
+      ps.push([o.id, r2(o.x), r2(o.y), r2(o.z), r2(o.f), o.a, o.v, r2(o.vh), o.seat, isAway(o), o.ts | 0, o.busRide | 0]);
     send(p, { t: 'snap', n: players.size, ps });
   }
 }, TICK_MS);

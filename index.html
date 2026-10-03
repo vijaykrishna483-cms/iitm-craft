@@ -412,6 +412,7 @@
     <div class="row"><button class="btn" id="bResume">Resume</button><button class="ghost" id="bWho">See who’s online</button><button class="ghost" id="bSuggest">Suggest a feature</button></div>
     <button class="linkish" id="bUnstuck">Stuck? Go back to the Main Gate</button>
     <button class="linkish" id="bPlane">Plane stuck? Send it back to the airstrip</button>
+    <div class="foot pausefoot"><a class="dev" href="https://github.com/vijaykrishna483-cms" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a> <a class="dev" href="https://www.linkedin.com/in/vijay-krishna-s-b68916283/" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M3.6 1.6a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM.9 6.3h5.4V16H.9V6.3Zm8 0h5.2v1.3h.07c.72-1.24 2.05-1.6 3.1-1.6V6c2.9 0 3.5 1.9 3.5 4.4V16h-5.4v-4.9c0-1.17-.02-2.68-1.63-2.68-1.63 0-1.88 1.27-1.88 2.59V16H8.9V6.3Z"/></svg></a></div>
   </div>
 </div>
 
@@ -1258,7 +1259,7 @@ function tree(x,z){
     const r = dy < 0 ? (big ? 3 : 2) : (big ? 2 : 1), y = y0+h+dy;
     for (let dz=-r;dz<=r;dz++) for (let dx=-r;dx<=r;dx++) {
       if (Math.abs(dx)===r && Math.abs(dz)===r && (dy===1 || rng()<.6)) continue;
-      if (y <= G+3) { const b = get(x+dx,G,z+dz); if (b === ROAD || b === CONCRETE) continue; }   // keep roads clear overhead
+      if (y <= G+5) { const b = get(x+dx,G,z+dz); if (b === ROAD || b === CONCRETE) continue; }   // keep roads clear overhead, bus-high
       if (!get(x+dx,y,z+dz)) set(x+dx,y,z+dz,LEAVES);
     }
   }
@@ -1679,6 +1680,429 @@ function skyGround(x, z){
   return [G+1, 0];
 }
 
+// ============================================================
+//  Campus bus: Main Gate -> Velachery Gate -> Mandakini Hostel -> Main Gate
+// ============================================================
+// Two electric buses run the loop on the left lane of the real roads, clockwise round Gajendra
+// Circle, turning back at the two gates. Nobody drives them: a bus's position is a pure function of
+// a clock the server shares, so every player sees it in the same place and no one can take it over.
+// At each stop the doors open for exactly three seconds.
+const BUS_STOPS = [
+  { n:'Main Gate', at:[4432,1200] },
+  { n:'Velachery Gate', at:[470,4968] },
+  { n:'Mandakini Hostel', at:[3904,5297] },
+];
+const GC_AT = [2534,4261];
+const BUS_LANE = 1.7, BUS_VMAX = 9.5, BUS_ACC = 1.6, BUS_DEC = 2, BUS_LAT = 1.8, BUS_DS = .5;
+const DOOR_MOVE = .7, DOOR_OPEN = 3, BUS_DWELL = DOOR_MOVE*2 + DOOR_OPEN + .8;
+const busClock = () => (Date.now() + (net.clockOff || 0)) / 1000;
+let BUS = null;                        // the route: points, timings, stops
+const buses = [];
+let onBus = null;                      // { b, seat } while we ride
+
+function segT(p, a, b){
+  const vx = b[0]-a[0], vz = b[1]-a[1], L2 = vx*vx + vz*vz || 1;
+  const t = Math.max(0, Math.min(1, ((p[0]-a[0])*vx + (p[1]-a[1])*vz) / L2));
+  return [Math.hypot(a[0]+vx*t-p[0], a[1]+vz*t-p[1]), t];
+}
+// Road network as a graph in map pixels. Roads that stop part-way along another road are joined to it.
+function roadGraph(){
+  const key = p => p[0] + ',' + p[1], nodes = new Map();
+  const node = p => { const k = key(p); if (!nodes.has(k)) nodes.set(k, { p, nb:new Map() }); return nodes.get(k); };
+  const link = (a, b) => { const d = Math.hypot(a[0]-b[0], a[1]-b[1]); node(a).nb.set(key(b), d); node(b).nb.set(key(a), d); };
+  const unlink = (a, b) => { node(a).nb.delete(key(b)); node(b).nb.delete(key(a)); };
+  for (const r of ROADS) for (let i=0;i<r.pts.length-1;i++) link(r.pts[i], r.pts[i+1]);
+  const splice = (p, maxD = 1e9, skip = null) => {
+    if (nodes.has(key(p)) && !skip) return key(p);
+    let best = null;
+    for (const A of nodes.values()) for (const kb of A.nb.keys()) {
+      const B = nodes.get(kb);
+      if (skip && (key(A.p) === skip || kb === skip)) continue;
+      const [d, t] = segT(p, A.p, B.p);
+      if (!best || d < best.d) best = { d, t, A, B };
+    }
+    if (!best || best.d > maxD) return null;
+    const q = [Math.round(best.A.p[0] + (best.B.p[0]-best.A.p[0])*best.t), Math.round(best.A.p[1] + (best.B.p[1]-best.A.p[1])*best.t)];
+    if (!nodes.has(key(q))) { unlink(best.A.p, best.B.p); link(best.A.p, q); link(q, best.B.p); }
+    return key(q);
+  };
+  for (const r of ROADS) for (const e of [r.pts[0], r.pts[r.pts.length-1]]) {
+    if (node(e).nb.size > 1) continue;
+    const q = splice(e, 25, key(e));
+    if (q && q !== key(e)) link(e, nodes.get(q).p);
+  }
+  const route = (a, b) => {          // Dijkstra
+    const ka = splice(a), kb = splice(b), dist = new Map([[ka, 0]]), prev = new Map(), done = new Set();
+    while (true) {
+      let k = null, best = 1e18;
+      for (const [n, d] of dist) if (!done.has(n) && d < best) { best = d; k = n; }
+      if (k === null || k === kb) break;
+      done.add(k);
+      for (const [n, w] of nodes.get(k).nb) if (!done.has(n) && best + w < (dist.get(n) ?? 1e18)) { dist.set(n, best + w); prev.set(n, k); }
+    }
+    const out = [nodes.get(kb).p];
+    for (let k = kb; prev.has(k); ) { k = prev.get(k); out.unshift(nodes.get(k).p); }
+    return out;
+  };
+  return { route };
+}
+function dedupe(pts){ return pts.filter((p, i) => !i || Math.hypot(p[0]-pts[i-1][0], p[1]-pts[i-1][1]) > .05); }
+// left lane: India keeps left. left of a heading (dx,dz) is (dz,-dx) in world blocks
+function offsetLeft(pts, off){
+  return pts.map((p, i) => {
+    const n = [0, 0];
+    for (const [a, b] of [[pts[i-1], p], [p, pts[i+1]]]) if (a && b) {
+      const dx = b[0]-a[0], dz = b[1]-a[1], L = Math.hypot(dx, dz) || 1; n[0] += dz/L; n[1] += -dx/L;
+    }
+    const L = Math.hypot(n[0], n[1]) || 1, ux = n[0]/L, uz = n[1]/L;
+    let k = off;
+    if (pts[i-1] && pts[i+1]) {                                    // mitre, capped
+      const dx = p[0]-pts[i-1][0], dz = p[1]-pts[i-1][1], L1 = Math.hypot(dx, dz) || 1;
+      k = off / Math.max(.5, ux*(dz/L1) + uz*(-dx/L1));
+    }
+    return [p[0] + ux*k, p[1] + uz*k];
+  });
+}
+// round every corner with a curve, so the bus turns instead of pivoting
+function fillet(pts, rOf){
+  const out = [pts[0]];
+  for (let i=1;i<pts.length-1;i++) {
+    const A = pts[i-1], B = pts[i], C = pts[i+1];
+    const l1 = Math.hypot(B[0]-A[0], B[1]-A[1]), l2 = Math.hypot(C[0]-B[0], C[1]-B[1]);
+    const u1 = [(B[0]-A[0])/l1, (B[1]-A[1])/l1], u2 = [(C[0]-B[0])/l2, (C[1]-B[1])/l2];
+    const phi = Math.acos(Math.max(-1, Math.min(1, u1[0]*u2[0] + u1[1]*u2[1])));
+    if (phi < .03) { out.push(B); continue; }
+    const td = Math.min(rOf(B)*Math.tan(phi/2), l1*.45, l2*.45);
+    const S = [B[0]-u1[0]*td, B[1]-u1[1]*td], E = [B[0]+u2[0]*td, B[1]+u2[1]*td];
+    const n = Math.max(2, Math.ceil(phi*8));
+    for (let k=0;k<=n;k++) { const t = k/n, a = (1-t)*(1-t), b2 = 2*(1-t)*t, c = t*t;
+      out.push([a*S[0] + b2*B[0] + c*E[0], a*S[1] + b2*B[1] + c*E[1]]); }
+  }
+  out.push(pts[pts.length-1]);
+  return out;
+}
+// clockwise round the Gajendra Circle island, on the ring road
+function roundabout(pts, c, R){
+  const inside = p => Math.hypot(p[0]-c[0], p[1]-c[1]) < R;
+  const hit = (p, q) => {                                          // where p->q crosses the ring
+    const dx = q[0]-p[0], dz = q[1]-p[1], fx = p[0]-c[0], fz = p[1]-c[1];
+    const A = dx*dx + dz*dz, B = 2*(fx*dx + fz*dz), C2 = fx*fx + fz*fz - R*R, D = B*B - 4*A*C2;
+    if (D < 0) return q;
+    const t1 = (-B - Math.sqrt(D))/(2*A), t2 = (-B + Math.sqrt(D))/(2*A), t = t1 >= 0 && t1 <= 1 ? t1 : t2;
+    return [p[0] + dx*t, p[1] + dz*t];
+  };
+  const out = [];
+  for (let i=0;i<pts.length;i++) {
+    if (!inside(pts[i])) { out.push(pts[i]); continue; }
+    let j = i; while (j < pts.length && inside(pts[j])) j++;
+    const a = hit(out[out.length-1] || pts[i], pts[i]), b = hit(pts[j-1], pts[Math.min(j, pts.length-1)]);
+    out.push(a);
+    const t0 = Math.atan2(a[1]-c[1], a[0]-c[0]);
+    let t1 = Math.atan2(b[1]-c[1], b[0]-c[0]);
+    while (t1 <= t0 + .2) t1 += Math.PI*2;                         // increasing angle is clockwise on the map
+    for (let t = t0; t < t1; t += .12) out.push([c[0] + Math.cos(t)*R, c[1] + Math.sin(t)*R]);
+    out.push([c[0] + Math.cos(t1)*R, c[1] + Math.sin(t1)*R]);
+    i = j - 1;
+  }
+  return out;
+}
+// turn back at a dead end: a semicircle across the road, swinging a little wide
+const BUS_TURN_R = 5, BUS_BAY_R = 8.6;
+function uturn(endPt, dir, left, centres){
+  const R = BUS_TURN_R, C = [endPt[0] - left[0]*BUS_LANE + dir[0]*3, endPt[1] - left[1]*BUS_LANE + dir[1]*3], out = [];
+  centres.push(C);
+  for (let k=0;k<=14;k++) { const t = k/14*Math.PI;
+    out.push([C[0] + left[0]*Math.cos(t)*R + dir[0]*Math.sin(t)*R, C[1] + left[1]*Math.cos(t)*R + dir[1]*Math.sin(t)*R]); }
+  return out;
+}
+function resample(pts, ds){
+  const out = [pts[0]]; let carry = 0;
+  for (let i=1;i<pts.length;i++) {
+    const a = pts[i-1], b = pts[i], L = Math.hypot(b[0]-a[0], b[1]-a[1]);
+    for (let t = ds - carry; t <= L; t += ds) out.push([a[0] + (b[0]-a[0])*t/L, a[1] + (b[1]-a[1])*t/L]);
+    carry = (carry + L) % ds;
+  }
+  return out;
+}
+function buildBusRoute(){
+  const g = roadGraph(), W = p => Pf(p);
+  const legPx = way => { let o = []; for (let i=0;i<way.length-1;i++) { const r = g.route(way[i], way[i+1]); o = o.concat(o.length ? r.slice(1) : r); } return o; };
+  const [MG, VEL, MAND] = BUS_STOPS.map(s => s.at);
+  const A = dedupe(legPx([MG, GC_AT, VEL]).map(W));
+  const B = dedupe(legPx([VEL, GC_AT, [2347,5297], MAND, [4035,5297], [4035,5760], [2250,5760], [2347,5297], GC_AT, MG]).map(W));
+  const gc = W(GC_AT);
+  // ring road is 8..11 from the island centre; tight curves there so turning onto it never cuts towards the island
+  const keepOut = pts => pts.map(p => { const dx = p[0]-gc[0], dz = p[1]-gc[1], d = Math.hypot(dx, dz);   // never closer than 10.6 to the island
+    return d < 10.6 && d > .01 ? [gc[0] + dx/d*10.6, gc[1] + dz/d*10.6] : p; });
+  const lane = pts => keepOut(fillet(roundabout(offsetLeft(pts, BUS_LANE), gc, 11), p => Math.hypot(p[0]-gc[0], p[1]-gc[1]) < 15 ? 6 : 7));
+  const turns = [];
+  const turnAt = pts => {
+    const e = pts[pts.length-1], p = pts[pts.length-2], L = Math.hypot(e[0]-p[0], e[1]-p[1]);
+    const dir = [(e[0]-p[0])/L, (e[1]-p[1])/L];
+    return uturn([e[0] + dir[1]*BUS_LANE, e[1] - dir[0]*BUS_LANE], dir, [dir[1], -dir[0]], turns);
+  };
+  const la = lane(A), lb = lane(B);
+  const tA = turnAt(A), tB = turnAt(B);                            // Velachery, then Main Gate
+  const pts = resample([...la, ...tA, ...lb, ...tB], BUS_DS);
+  const N = pts.length, near = q => { let k = 0, bd = 1e9; pts.forEach((p, i) => { const d = Math.hypot(p[0]-q[0], p[1]-q[1]); if (d < bd) { bd = d; k = i; } }); return k; };
+  const stopIdx = [near(lb[lb.length-1]), near(la[la.length-1]), near(offsetLeft([W([3700,5297]), W(MAND)], BUS_LANE)[1])];
+  // headings, smoothed over a few metres
+  const hd = pts.map((p, i) => { const a = pts[(i-4+N)%N], b = pts[(i+4)%N]; return Math.atan2(b[0]-a[0], b[1]-a[1]); });
+  // speed: slower in curves, zero at stops, gentle acceleration and braking
+  const v = pts.map((p, i) => { const d = Math.abs(Math.atan2(Math.sin(hd[(i+3)%N]-hd[(i-3+N)%N]), Math.cos(hd[(i+3)%N]-hd[(i-3+N)%N]))); return Math.min(BUS_VMAX, Math.sqrt(BUS_LAT * (6*BUS_DS) / Math.max(1e-3, d))); });
+  const isStop = new Array(N).fill(-1); stopIdx.forEach((k, s) => { isStop[k] = s; v[k] = 0; });
+  const o = stopIdx[0];                                            // start the clock at Main Gate
+  for (let n=1;n<=N;n++) { const i = (o+n)%N, j = (o+n-1)%N; v[i] = Math.min(v[i], Math.sqrt(v[j]*v[j] + 2*BUS_ACC*BUS_DS)); }
+  for (let n=N-1;n>=0;n--) { const i = (o+n)%N, j = (o+n+1)%N; v[i] = Math.min(v[i], Math.sqrt(v[j]*v[j] + 2*BUS_DEC*BUS_DS)); }
+  const order = [], arrive = new Float64Array(N), depart = new Float64Array(N);
+  let t = 0;
+  for (let n=0;n<N;n++) {
+    const i = (o+n)%N, j = (o+n+1)%N;
+    order.push(i); arrive[n] = t; depart[n] = t + (isStop[i] >= 0 ? BUS_DWELL : 0);
+    t = depart[n] + 2*BUS_DS / Math.max(.4, v[i] + v[j]);
+  }
+  const nextAt = new Int8Array(N); let nx = 0;
+  for (let n=2*N-1;n>=0;n--) { const s = isStop[order[n % N]]; if (n < N) nextAt[n] = nx; if (s >= 0) nx = s; }
+  BUS = { pts, hd, v, isStop, order, arrive, depart, period: t, stopIdx, nextAt, bays: [turns[1], turns[0]] };   // by stop: Main Gate, Velachery
+}
+// where a bus is at a given moment
+function busAt(time){
+  const R = BUS, tm = ((time % R.period) + R.period) % R.period;
+  let lo = 0, hi = R.order.length - 1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (R.arrive[m] <= tm) lo = m; else hi = m - 1; }
+  const n = lo, i = R.order[n], j = R.order[(n+1) % R.order.length];
+  const nextArr = n + 1 < R.order.length ? R.arrive[n+1] : R.period;
+  let x, z, h, sp, door = 0, open = false, stop = -1;
+  if (tm < R.depart[n]) {
+    [x, z] = R.pts[i]; h = R.hd[i]; sp = 0; stop = R.isStop[i];
+    const tau = tm - R.arrive[n];
+    door = tau < DOOR_MOVE ? tau/DOOR_MOVE : tau < DOOR_MOVE + DOOR_OPEN ? 1 : Math.max(0, 1 - (tau - DOOR_MOVE - DOOR_OPEN)/DOOR_MOVE);
+    open = tau >= DOOR_MOVE && tau <= DOOR_MOVE + DOOR_OPEN;
+  } else {
+    const f = (tm - R.depart[n]) / Math.max(1e-6, nextArr - R.depart[n]);
+    x = R.pts[i][0] + (R.pts[j][0]-R.pts[i][0])*f; z = R.pts[i][1] + (R.pts[j][1]-R.pts[i][1])*f;
+    h = R.hd[i] + Math.atan2(Math.sin(R.hd[j]-R.hd[i]), Math.cos(R.hd[j]-R.hd[i]))*f;
+    sp = R.v[i] + (R.v[j]-R.v[i])*f;
+  }
+  const next = R.nextAt[n];
+  return { x, z, h, sp, door, open, stop, next };
+}
+
+// ---------- the bus itself, after the blue Switch e-buses that run on campus ----------
+const BUS_BLUE = 0x2556d8, BUS_DEEP = 0x1b3fa8, BUS_YEL = 0xf2c400, BUS_BLK = 0x16181c;
+const busGlass = new THREE.MeshLambertMaterial({ color:0x0d1b26, transparent:true, opacity:.5, depthWrite:false });
+const BUS_SEATS = [];
+for (let z = 2.0; z >= -4.2; z -= .9) for (const x of [-.78, .78]) if (!(x > 0 && Math.abs(z + 1.6) < .7)) BUS_SEATS.push([x, .62, z]);   // none in the doorway
+function busFrontTex(){
+  return canvasTex(512, 256, g => {
+    g.fillStyle = '#2556d8'; g.fillRect(0, 0, 512, 256);
+    g.fillStyle = '#16181c'; g.fillRect(0, 0, 512, 46);
+    g.fillStyle = '#f2f2ee'; g.fillRect(0, 46, 512, 40);
+    g.fillStyle = '#1a2340'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    fitFont(g, 'Indian Institute of Technology Madras', 700, SANS, 24, 400); g.fillText('Indian Institute of Technology Madras', 270, 67);
+    g.fillStyle = '#e7b73b'; g.beginPath(); g.arc(46, 66, 14, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.85)'; g.font = `800 34px ${SANS}`; g.fillText('SWITCH', 256, 132);
+    for (const x of [38, 474]) {                                  // light pods
+      g.fillStyle = '#16181c'; g.beginPath(); g.roundRect(x-26, 108, 52, 120, 14); g.fill();
+      for (const y of [136, 168, 200]) { g.fillStyle = '#f6f3e6'; g.beginPath(); g.arc(x, y, 10, 0, 7); g.fill(); }
+    }
+    g.fillStyle = '#1fae5b'; g.fillRect(206, 196, 100, 44);       // green (electric) plate
+    g.fillStyle = '#fff'; g.font = `700 20px ${SANS}`; g.fillText('TN 01 EV', 256, 219);
+  });
+}
+function busSignTex(){
+  return canvasTex(512, 64, g => {
+    g.fillStyle = '#0b0c0e'; g.fillRect(0, 0, 512, 64);
+    g.fillStyle = '#ffae2b'; g.font = `700 34px ${SANS}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('IITM  CAMPUS  LOOP', 256, 34);
+  });
+}
+function makeBus(){
+  const g = new THREE.Group(), L = 10, W = 2.6, hx = W/2, P = [], doors = [];
+  const DOORS = [[3.5, 1.2], [-1.6, 1.2]];                        // [centre z, width] on the left (+x) side
+  const gaps = z => DOORS.some(([c, w]) => Math.abs(z - c) < w/2);
+  // floor, roof and the battery pod on top
+  P.push(part(W-.1, .14, L-.2, 0x4a505a, 0, .55, 0));
+  P.push(part(W, .1, L, BUS_BLUE, 0, 2.95, 0), part(W-.6, .32, 6, 0x5f86ec, 0, 3.16, -.4));
+  P.push(part(.08, .42, L-.3, BUS_BLUE, -hx, 2.71, 0));
+  P.push(part(.08, .42, L-.3, BUS_BLUE, hx, 2.71, 0));
+  // sides: blue skirt, yellow stripe, black window pillars; the left side leaves room for the doors
+  for (const side of [-1, 1]) {
+    const x = side*hx;
+    for (let z = -4.85; z < 4.85; z += .25) {
+      if (side > 0 && gaps(z + .125)) continue;
+      P.push(part(.08, .95, .25, z < -3.6 || z > 1.7 && z < 2.9 ? BUS_DEEP : BUS_BLUE, x, .83, z + .125));
+      P.push(part(.09, .08, .25, BUS_YEL, x*1.003, 1.34, z + .125));
+    }
+    for (let z = -4.6; z <= 4.4; z += 1.25) if (!(side > 0 && gaps(z))) P.push(part(.1, 1.14, .12, BUS_BLK, x, 1.95, z));
+  }
+  // door frames
+  for (const [c, w] of DOORS) for (const e of [-1, 1]) P.push(part(.12, 2.2, .1, BUS_BLK, hx, 1.45, c + e*w/2));
+  // wheel arches and wheels
+  const wheels = [];
+  for (const z of [2.3, -3.3]) for (const side of [-1, 1]) {
+    P.push(part(.1, .5, 1.3, BUS_BLK, side*hx*1.01, .6, z));
+    const spin = new THREE.Group(); spin.position.set(side*(hx-.15), .5, z); g.add(spin);
+    const m = new THREE.Mesh(wheelGeo, wheelMat); m.rotation.z = Math.PI/2; m.scale.set(.5/.3, 1.5, .5/.3); spin.add(m);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .35, 10), new THREE.MeshLambertMaterial({ color:0xb9bec6 }));
+    hub.rotation.z = Math.PI/2; spin.add(hub); wheels.push(spin);
+  }
+  // front: black mask round the windscreen, mirrors, and the back
+  P.push(part(W, .1, .1, BUS_BLK, 0, 2.62, 4.97), part(.1, 1.3, .1, BUS_BLK, -hx+.05, 1.98, 4.97), part(.1, 1.3, .1, BUS_BLK, hx-.05, 1.98, 4.97));
+  for (const side of [-1, 1]) P.push(part(.36, .06, .06, BUS_BLK, side*(hx+.18), 2.5, 4.8), part(.08, .42, .24, BUS_BLK, side*(hx+.36), 2.3, 4.8));
+  P.push(part(W, 1.05, .1, BUS_BLUE, 0, .85, -4.97), part(W, .45, .1, BUS_BLUE, 0, 2.72, -4.97));
+  for (const side of [-1, 1]) P.push(part(.3, .3, .06, 0xd23a2a, side*(hx-.3), .75, -5.03));
+  // seats, and the yellow handrails by the doors
+  for (const [x, y, z] of BUS_SEATS) P.push(part(.55, .1, .5, 0x2a62c9, x, y + .33, z), part(.55, .6, .08, 0x2a62c9, x, y + .62, z - .24));
+  for (const [c] of DOORS) for (const e of [-1, 1]) P.push(part(.05, 2.2, .05, BUS_YEL, hx - .45, 1.7, c + e*.55));
+  // the garland of jasmine and marigolds across the front
+  for (let k = 0; k <= 26; k++) {
+    const t = k/26, x = -1.05 + t*2.1, y = 1.26 - Math.sin(t*Math.PI)*.34;
+    P.push(part(.07, .07, .07, k % 4 === 2 ? 0xe8471c : k % 4 === 0 ? 0xffa21f : 0xfbfaf2, x, y, 5.06));
+  }
+  for (let k = 0; k < 4; k++) P.push(part(.07, .07, .07, k === 3 ? 0xd2242a : 0xfbfaf2, 0, .84 - k*.08, 5.06));
+  g.add(model(P.filter(Boolean)));
+  // glass: windscreen, side windows, rear window
+  const glass = [];
+  glass.push(new THREE.Mesh(new THREE.PlaneGeometry(W-.18, 1.24), busGlass)); glass[0].position.set(0, 1.98, 5.0);
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(W-.4, 1.0), busGlass); back.position.set(0, 1.95, -5.0); back.rotation.y = Math.PI; glass.push(back);
+  for (const side of [-1, 1]) for (const [z0, z1] of side > 0 ? [[-4.85, -2.2], [-1.0, 2.9], [4.1, 4.85]] : [[-4.85, 4.85]]) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(z1 - z0, 1.14), busGlass);
+    m.position.set(side*(hx + .01), 1.95, (z0 + z1)/2); m.rotation.y = side*Math.PI/2; glass.push(m);
+  }
+  glass.forEach(m => { m.renderOrder = 2; g.add(m); });
+  // the painted front and the destination sign
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(W, 1.0), new THREE.MeshLambertMaterial({ map: busFrontTex() }));
+  front.position.set(0, .86, 5.02); g.add(front);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(W-.3, .26), new THREE.MeshBasicMaterial({ map: busSignTex() }));
+  sign.position.set(0, 2.78, 5.03); g.add(sign);
+  // door leaves slide apart along the body
+  for (const [c, w] of DOORS) for (const e of [-1, 1]) {
+    const leaf = new THREE.Group(); leaf.position.set(hx + .02, 0, c + e*w/4);
+    leaf.add(model([part(.06, 2.12, .05, BUS_BLK, 0, 1.43, e*w/4 - e*.02), part(.06, .06, w/2, BUS_BLK, 0, 2.48, 0), part(.06, .06, w/2, BUS_BLK, 0, .4, 0)]));
+    const gl = new THREE.Mesh(new THREE.PlaneGeometry(w/2 - .06, 2.0), busGlass); gl.rotation.y = Math.PI/2; gl.position.set(.01, 1.43, 0); gl.renderOrder = 2; leaf.add(gl);
+    leaf.userData = { c, e, w }; g.add(leaf); doors.push(leaf);
+  }
+  return { g, wheels, doors };
+}
+// a stop: shelter with a bench and a blue sign
+function busStopSign(name){
+  return canvasTex(256, 160, g => {
+    g.fillStyle = '#2556d8'; g.beginPath(); g.roundRect(0, 0, 256, 160, 18); g.fill();
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `800 46px ${SANS}`; g.fillText('BUS', 128, 50);
+    fitFont(g, name, 700, SANS, 30, 230); g.fillText(name, 128, 112);
+  });
+}
+function buildBusStop(s){
+  const bay = BUS.bays[s];
+  if (bay) {                                       // a paved turning bay, cleared of trees and lamp posts
+    const [bx, bz] = bay, r = BUS_BAY_R;
+    for (let z = Math.floor(bz - r - 2); z <= bz + r + 2; z++) for (let x = Math.floor(bx - r - 2); x <= bx + r + 2; x++) {
+      const d = Math.hypot(x + .5 - bx, z + .5 - bz); if (d > r + 1.5) continue;
+      for (let y = G+1; y <= G+9; y++) { const b = get(x, y, z); if (b === LEAVES || b === LOG || b === LAMP || b === HEDGE || b === GRASS || b === DIRT) set(x, y, z, AIR); }
+      const top = get(x, G, z);
+      if (top !== WATER && top !== ROAD && top !== CONCRETE) set(x, G, z, d <= r ? ROAD : PAVER);
+    }
+  }
+  const back = bay ? 10 : 2;                       // shelters stand clear of a turning bus
+  const k = (BUS.stopIdx[s] - back + BUS.pts.length) % BUS.pts.length, [px, pz] = BUS.pts[k], h = BUS.hd[k], lx = Math.cos(h), lz = -Math.sin(h);
+  const cx = px + lx*3.3, cz = pz + lz*3.3;
+  // clear branches and lamp posts where the shelter goes
+  for (let dz=-3;dz<=3;dz++) for (let dx=-3;dx<=3;dx++) for (let y=G+1;y<=G+6;y++) {
+    const b = get(Math.floor(cx)+dx, y, Math.floor(cz)+dz); if (b === LEAVES || b === LAMP || (b === CONCRETE && y <= G+3)) set(Math.floor(cx)+dx, y, Math.floor(cz)+dz, AIR);
+  }
+  const g = new THREE.Group(); g.position.set(cx, G+1, cz); g.rotation.y = h;
+  g.add(model([
+    part(1.4, .06, 3.2, 0xb8bcc2, 0, .03, 0),
+    part(.08, 2.3, .08, 0x3b3f46, .6, 1.15, -1.5), part(.08, 2.3, .08, 0x3b3f46, .6, 1.15, 1.5),
+    part(.08, 2.3, .08, 0x3b3f46, -.6, 1.15, -1.5), part(.08, 2.3, .08, 0x3b3f46, -.6, 1.15, 1.5),
+    part(1.6, .1, 3.4, BUS_BLUE, 0, 2.35, 0),
+    part(.36, .06, 2.6, 0x8a5a33, .35, .55, 0), part(.08, .5, .08, 0x3b3f46, .35, .27, -1.1), part(.08, .5, .08, 0x3b3f46, .35, .27, 1.1),
+    part(.06, 2.6, .06, 0x3b3f46, -.3, 1.3, 2.1),
+  ]));
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.6), busGlass); panel.position.set(.66, 1.3, 0); panel.rotation.y = Math.PI/2; g.add(panel);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(.8, .5), new THREE.MeshLambertMaterial({ map: busStopSign(BUS_STOPS[s].n), side: THREE.DoubleSide }));
+  sign.position.set(-.3, 2.75, 2.1); sign.rotation.y = -Math.PI/2; g.add(sign);
+  scene.add(g);
+}
+function spawnBuses(){
+  VSPEC.bus = { cam: 6.5 };
+  buildBusRoute();
+  // a wider paved apron round Gajendra Circle: a bus's corners swing past the 3-block ring road
+  const [gx, gz] = P(GC_AT);
+  // the island's kerb is laid flush (still a paved ring), so a turning bus's corners never catch it
+  for (let z = gz-9; z <= gz+9; z++) for (let x = gx-9; x <= gx+9; x++) { const d = Math.hypot(x - gx, z - gz); if (d > 7 && d <= 8 && get(x, G+1, z) === PAVER) set(x, G+1, z, AIR); }
+  for (let z = gz-15; z <= gz+15; z++) for (let x = gx-15; x <= gx+15; x++) {
+    const d = Math.hypot(x - gx, z - gz); if (d <= 11.9 || d > 14) continue;
+    for (let y = G+1; y <= G+9; y++) { const b = get(x, y, z); if (b === LEAVES || b === LOG || b === LAMP || b === HEDGE || b === GRASS || b === CONCRETE) set(x, y, z, AIR); }
+    const top = get(x, G, z); if (top === GRASS || top === DIRT || top === SAND) set(x, G, z, PAVER);
+  }
+  // lamp posts the bus would brush on a turn are moved out of its way (removed)
+  for (let i = 0; i < BUS.pts.length; i += 2) {
+    const [px, pz] = BUS.pts[i];
+    for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) {
+      const x = Math.floor(px) + dx, z = Math.floor(pz) + dz;
+      if (Math.hypot(x + .5 - px, z + .5 - pz) > 2.4) continue;
+      let lamp = false; for (let y = G+1; y <= G+6; y++) if (get(x, y, z) === LAMP) lamp = true;
+      if (lamp) for (let y = G+1; y <= G+6; y++) { const b = get(x, y, z); if (b === LAMP || b === CONCRETE) set(x, y, z, AIR); }
+    }
+  }
+  BUS_STOPS.forEach((s, i) => buildBusStop(i));
+  for (let i=0;i<2;i++) {
+    const m = makeBus(), b = { ...m, i, kind:'bus', phase: i*BUS.period/2, x:0, y:G+1, z:0, heading:0, speed:0, st:null };
+    b.g.userData.bus = b; scene.add(b.g); buses.push(b);
+  }
+  updateBuses(0);
+}
+function busDoorPoints(b){
+  const s = Math.sin(b.heading), c = Math.cos(b.heading), out = [];
+  for (const zc of [3.5, -1.6]) out.push({ x: b.x + c*2.0 + s*zc, z: b.z - s*2.0 + c*zc, y: G+1, bus: b });
+  return out;
+}
+function updateBuses(dt){
+  if (!BUS) return;
+  const now = busClock();
+  for (const b of buses) {
+    const st = busAt(now + b.phase), was = b.st;
+    b.st = st; b.x = st.x; b.z = st.z; b.heading = st.h; b.speed = st.sp;
+    b.g.position.set(st.x, G+1, st.z); b.g.rotation.y = st.h;
+    for (const w of b.wheels) w.rotation.x += st.sp*dt/.5;
+    for (const d of b.doors) { const { c, e, w } = d.userData; d.position.set(1.32 + st.door*.06, 0, c + e*w/4 + e*st.door*(w/2 - .05)); }
+    if (was && !was.open && st.open && Math.hypot(b.x - player.pos.x, b.z - player.pos.z) < 30) sfx.chime();
+  }
+  if (onBus) {
+    const b = onBus.b, [sx, sy, sz] = BUS_SEATS[onBus.seat], s = Math.sin(b.heading), c = Math.cos(b.heading);
+    player.pos.set(b.x + c*sx + s*sz, G+1 + sy, b.z - s*sx + c*sz); player.vel.set(0, 0, 0);
+    const label = 'On the bus · next: ' + BUS_STOPS[b.st.next].n;
+    if ($('mode').textContent !== label) $('mode').textContent = label;
+  }
+}
+function boardBus(b){
+  if (!b.st || !b.st.open || onBus || driving || riding) return;
+  const taken = new Set([...net.peers.values()].filter(p => p.busRide && ((p.busRide-1)/100|0) === b.i).map(p => (p.busRide-1) % 100));
+  let seat = 0; while (taken.has(seat) && seat < BUS_SEATS.length - 1) seat++;
+  if (act.seated) standUp();
+  onBus = { b, seat }; player.fly = false;
+  b.g.add(student.g); student.g.position.set(...BUS_SEATS[seat]); student.g.rotation.set(0, 0, 0);
+  animateStudent(student, 0, 0, 'sit');
+  nsend({ t:'bus', ride: b.i*100 + seat + 1 });
+  lastMouse = 0;
+}
+function leaveBus(force){
+  if (!onBus) return;
+  const b = onBus.b;
+  if (!force && !b.st.open) return;
+  onBus = null;
+  scene.add(student.g);
+  const d = busDoorPoints(b)[1], s = Math.sin(b.heading), c = Math.cos(b.heading);
+  const x = d.x + c*1.4, z = d.z - s*1.4;
+  if (!force) { player.pos.set(x, G+1, z); student.facing = b.heading + Math.PI/2; }
+  player.vel.set(0, 0, 0); student.g.position.copy(player.pos);
+  nsend({ t:'bus', ride: 0 });
+  $('mode').textContent = 'Walking';
+}
+
 // Seat 0 is the driver; e-buggies also have a front passenger and a middle bench for two.
 const BUGGY_SEATS = [[-.34,.36,.5], [.34,.36,.5], [-.34,.36,-.4], [.34,.36,-.4]];
 const PLANE_SEATS = [[0,.3,.55], [0,.3,-.45]];
@@ -2058,6 +2482,7 @@ function teleport(x,z,face){
   if (act.fishing) stopFishing();
   if (driving) exitBuggy(true);
   if (riding) leaveSeat();
+  if (onBus) leaveBus(true);
   const standAt = (x,z) => {
     let y = WH-2; while (y > 0 && (!get(Math.floor(x),y,Math.floor(z)) || get(Math.floor(x),y,Math.floor(z)) === LEAVES)) y--;
     return { x, y:y+1, z };
@@ -2274,7 +2699,7 @@ function unstickVehicle(c){
 // ============================================================
 function updateCamera(dt){
   let tx, ty, tz, want;
-  const car = driving || (riding && riding.v);
+  const car = driving || (riding && riding.v) || (onBus && onBus.b);
   if (car) {
     tx = car.x; ty = car.y+2.1; tz = car.z; want = camDist+VSPEC[car.kind].cam;
     if (performance.now()-lastMouse > 1400 && Math.abs(car.speed) > .5) {
@@ -2299,6 +2724,7 @@ function updateCamera(dt){
 // ============================================================
 let focus = null;
 function findFocus(){
+  if (onBus) return onBus.b.st && onBus.b.st.open ? { type:'busExit', text:'Get off the bus' } : null;
   if (driving || riding) return { type:'exit', text:'Get out' };
   if (act.seated) return { type:'stand', text:'Stand up' };
   if (act.batting) return { type:'swing', text:'Swing!' };
@@ -2315,6 +2741,7 @@ function findFocus(){
     if (!b.remote) consider('drive', b, r, VSPEC[b.kind].prompt, 0, seats ? (pl ? 'Back seat' : 'Sit in') : null);   // free: drive, or just sit
     else if (seats && !b.air) consider('ride', b, r, pl ? 'Get in the back seat' : 'Get in the e-buggy');           // someone's driving: passenger only
   }
+  for (const b of buses) if (b.st && b.st.open) for (const d of busDoorPoints(b)) consider('bus', d, 3.4, 'Get on the bus', -1.5);
   if (!net.chatWith) for (const p of net.peers.values()) if (!p.vehicle) consider('chat', p, 4, `Chat with ${p.name}`, -1.5);
   for (const d of deer) consider('deer', d, 5.5, d.greeted ? 'Pat the deer' : d.kind === 'buck' ? 'Say hi to the blackbuck' : 'Say hi to the spotted deer', .5);
   for (const m of monkeys) consider('monkey', m, 3.6, 'Wave at the monkey', .5);
@@ -2342,6 +2769,8 @@ function interact(){
   focus = findFocus();
   if (activityUse(focus)) return;
   if (!focus) return;
+  if (focus.type === 'bus') return boardBus(focus.o.bus);
+  if (focus.type === 'busExit') return leaveBus();
   if (focus.type === 'drive') return enterBuggy(focus.o);
   if (focus.type === 'ride') return enterSeat(focus.o);
   if (focus.type === 'exit') return riding ? leaveSeat() : exitBuggy(false);
@@ -2586,6 +3015,14 @@ function drawMap(){
     mctx.beginPath(); mctx.roundRect(-3,-4.5,6,9,2); mctx.fill(); mctx.stroke(); mctx.restore();
   }
 
+  for (const b of buses) {
+    if (!vis(b.x, b.z)) continue;
+    const [sx, sz] = toS(b.x, b.z);
+    mctx.save(); mctx.translate(sx, sz); mctx.rotate(-b.heading);
+    mctx.fillStyle = '#2556d8'; mctx.strokeStyle = '#ffffff'; mctx.lineWidth = 1.6;
+    mctx.beginPath(); mctx.roundRect(-3.5, -8, 7, 16, 2.5); mctx.fill(); mctx.stroke(); mctx.restore();
+    label('Bus', sx, sz - 17, '700 11px ' + SANS, '#d6e3ff', 4, false);
+  }
   // the plane
   const pln = thePlane();
   if (pln && vis(pln.x, pln.z)) {
@@ -2775,6 +3212,7 @@ function onNet(m){
   switch (m.t) {
     case 'welcome':
       net.id = m.id; net.online = m.online; net.status = 'online'; net.retry = 0;
+      if (m.now) net.clockOff = m.now - Date.now();                  // the buses run on the server's clock
       // Reconnecting after a deploy keeps this page's old code running. If the server is on a newer
       // build, offer a refresh rather than reloading mid-game and losing where you are.
       if (m.build) { if (!net.build) net.build = m.build; else if (m.build !== net.build) $('upd').hidden = false; }
@@ -2863,8 +3301,9 @@ function upsertPeer(d){
   }
   snapPeer([d.id, d.x, d.y, d.z, d.f, d.a, d.v, d.vh, d.st || 0, d.away || 0]);
 }
-function snapPeer([id,x,y,z,f,a,v,vh,st=0,away=0,ts=0]){
+function snapPeer([id,x,y,z,f,a,v,vh,st=0,away=0,ts=0,br=0]){
   const p = net.peers.get(id); if (!p) return;
+  p.busRide = br | 0;
   p.seenAt = performance.now();   // the server only sends players within view range
   if (!!away !== !!p.away) {
     p.away = !!away; p.awaySince = performance.now();
@@ -2966,6 +3405,14 @@ function updatePeers(dt){
     p.climb = (p.climb || 0) + ((p.y-oy)/idt - (p.climb || 0))*Math.min(1, dt*6);
     const d = Math.hypot(p.x-player.pos.x, p.z-player.pos.z);
     p.tag.visible = d < 70;
+    // On a bus: sit in our own copy of it. Their raw position trails the bus by the network delay.
+    const rb = p.busRide && buses[(p.busRide-1)/100|0];
+    if (rb) {
+      if (p.s.g.parent !== rb.g) rb.g.add(p.s.g);
+      p.s.g.position.set(...BUS_SEATS[Math.min((p.busRide-1) % 100, BUS_SEATS.length-1)]); p.s.g.rotation.set(0, 0, 0);
+      p.s.g.visible = true; animateStudent(p.s, dt, 0, 'sit');
+      continue;
+    } else if (p.s.g.parent && p.s.g.parent.userData.bus) scene.add(p.s.g);
     if (p.vehicle && p.seat) {
       // passengers just sit; the vehicle is moved by its driver
     } else if (p.vehicle) {
@@ -3001,7 +3448,7 @@ function netSend(dt){
   if (net.status !== 'online' || !student || (net.sendT -= dt) > 0) return;
   net.sendT = .1;
   const car = driving || (riding && riding.v);
-  const a = driving ? VSPEC[driving.kind].pose : riding || act.seated || (act.emote && act.emote.e === 'sit') ? 'sit' : player.fly ? 'fly' : player.onGround ? 'walk' : 'air';
+  const a = driving ? VSPEC[driving.kind].pose : riding || onBus || act.seated || (act.emote && act.emote.e === 'sit') ? 'sit' : player.fly ? 'fly' : player.onGround ? 'walk' : 'air';
   const r = v => Math.round(v*100)/100;
   // ts is our own clock: the server relays it so others can space our positions by when we actually
   // sent them, not by when a server tick happened to carry them.
@@ -3320,7 +3767,7 @@ function initTouch(){
   $('bPause').onclick = pauseGame;
 
   // keep labels in step with what the buttons will do
-  const USE = { exit:'Get out', drive:'Drive', ride:'Get in', chat:'Chat', deer:'Say hi', monkey:'Wave', croc:'Look', dance:'Dance', kick:'Kick', bat:'Bat', seat:'Sit', board:'Events', swim:'Race', fish:'Fish', stand:'Stand', swing:'Swing', reel:'Reel' };
+  const USE = { exit:'Get out', drive:'Drive', ride:'Get in', chat:'Chat', deer:'Say hi', monkey:'Wave', croc:'Look', dance:'Dance', kick:'Kick', bus:'Board', busExit:'Get off', bat:'Bat', seat:'Sit', board:'Events', swim:'Race', fish:'Fish', stand:'Stand', swing:'Swing', reel:'Reel' };
   let lastSig = '';
   touchLabels = () => {
     if (!running && keys.has('ShiftLeft') && !sinking) keys.delete('ShiftLeft');
@@ -3972,7 +4419,7 @@ async function boot(){
   await step(42, 'Planting the forest');       genTrees();
   placeList = PLACES.filter(p => !p.skip);
   placeList.forEach(p => { p.found = false; signboard(p); floatLabel(p); });
-  await step(46, 'Parking the e-buggies');     const strip = airstrip(); spawnBuggies(); spawnCycles(); spawnPlane(strip); buggies.forEach((b,i) => { b.vid = i; b.riders = [0,0,0]; }); spawnWildlife(); spawnCrocs(); buildActivities();
+  await step(46, 'Parking the e-buggies');     const strip = airstrip(); spawnBuggies(); spawnCycles(); spawnPlane(strip); spawnBuses(); buggies.forEach((b,i) => { b.vid = i; b.riders = [0,0,0]; }); spawnWildlife(); spawnCrocs(); buildActivities();
   for (let z=0;z<WZ;z++) for (let x=0;x<WX;x++) mapPixel(x,z);
   const all = [];
   for (let cz=0;cz<WZ/CS;cz++) for (let cx=0;cx<WX/CS;cx++) all.push([cx,cz]);
@@ -4011,8 +4458,9 @@ renderer.setAnimationLoop(now => {
   // Peers move first: a passenger's own position and camera are taken from the vehicle below, and
   // reading last frame's position made the ride judder while the pilot's own view stayed smooth.
   updatePeers(dt);
+  updateBuses(dt);
   if (state === 'play') {
-    const sprinting = driving ? (updateDriving(dt), false) : riding ? (player.pos.set(riding.v.x, riding.v.y, riding.v.z), false)
+    const sprinting = driving ? (updateDriving(dt), false) : riding ? (player.pos.set(riding.v.x, riding.v.y, riding.v.z), false) : onBus ? false
       : act.seated ? (holdSeat(), false) : act.batting ? false : updatePlayer(dt);
     if (act.emote && student && !driving && !riding) emotePose(student, act.emote, dt);
     updateWildlife(dt, sprinting);
@@ -4044,6 +4492,9 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
   stateNow: () => state, act: () => act,
   view: () => ({ ...view, mapW, mapH }), openWhoNow: () => openWho(), openMapNow: openMap, toastNow: (a,b,c) => toast(a,b,c),
+  busAt: t => busAt(t), busRoute: () => BUS && { period: BUS.period, N: BUS.pts.length, stops: BUS.stopIdx.map(k => BUS.pts[k]), pts: BUS.pts },
+  busesNow: () => buses.map(b => ({ i: b.i, ...b.st })), onBusNow: () => onBus && { i: onBus.b.i, seat: onBus.seat },
+  boardBusNow: i => boardBus(buses[i]), leaveBusNow: f => leaveBus(f), busClockNow: () => busClock(),
   skyGround: (x,z) => skyGround(x,z), blockId: (x,y,z) => get(Math.floor(x),Math.floor(y),Math.floor(z)), consts: () => ({ G, WX, WZ, WH, LOG, LEAVES, ROAD, CONCRETE, PAVER }), roadSegs: () => SEGS.map(s => ({ ...s })),
   peerDbg: () => [...net.peers.values()].map(p => ({ id:p.id, n:p.buf ? p.buf.length : 0, gap:Math.round(p.gap||0), off:Math.round(p.tOff||0),
     lag: p.buf && p.buf.length ? Math.round(performance.now() - Math.max(NET_DELAY, Math.min(400,(p.gap||0)*1.8)) - p.buf[p.buf.length-1].t) : null,
