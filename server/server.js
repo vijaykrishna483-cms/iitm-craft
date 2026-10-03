@@ -97,6 +97,8 @@ const act = createActivities({ players, send, broadcast, near, clean, num });
 const STARTED = Date.now();
 const BUILD = (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || String(STARTED);
 let goingDown = false;
+// requested bus stops, in server seconds; see busEff() in the client
+const HAIL_D = 7.4, busP = Array.from({ length: 3 }, () => ({ shift:0, ps:0, pe:0 }));
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost');
   if (pathname === '/' || pathname === '/index.html') {
@@ -152,7 +154,7 @@ wss.on('connection', ws => {
         seen: Date.now() };   // count them as active from the moment they join, or the idle sweep
                               // could take the seat of someone who has not sent a position yet
       players.set(me.id, me);
-      send(me, { t: 'welcome', id: me.id, online: players.size, build: BUILD, now: Date.now(),
+      send(me, { t: 'welcome', id: me.id, online: players.size, build: BUILD, now: Date.now(), busP,
         players: [...players.values()].filter(p => p !== me && p.ready).map(pub),
         vehicles: [...vehicles].map(([id, v]) => [id, r2(v.x), r2(v.z), r2(v.h), v.driver, v.riders]), ...act.welcome() });
       return;
@@ -213,6 +215,16 @@ wss.on('connection', ws => {
         if (!v) vehicles.set(vid, { x, z, h, driver: 0, riders: [0, 0, 0] });
         else Object.assign(v, { x, z, h });
         broadcast(vehState(vid, vehicles.get(vid), true), me);
+        return;
+      }
+      case 'busStop': {
+        // stop a bus for everyone: one at a time per bus, a breather after each, and not too often per player
+        const i = [0, 1, 2].includes(m.i) ? m.i : 0, now = Date.now()/1000, b = busP[i];
+        if (now - (me.lastHail || 0) < 12 || now < b.pe + 6) return;
+        me.lastHail = now;
+        if (b.pe) b.shift += HAIL_D - 1;                          // fold the previous stop in
+        b.ps = now + .2; b.pe = b.ps + HAIL_D;
+        broadcast({ t: 'busPause', i, ...b });
         return;
       }
       case 'bus': {

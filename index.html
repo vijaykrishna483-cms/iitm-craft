@@ -1699,6 +1699,23 @@ const busClock = () => (Date.now() + (net.clockOff || 0)) / 1000;
 let BUS = null;                        // the route: points, timings, stops
 const buses = [];
 let onBus = null;                      // { b, seat } while we ride
+// A requested stop ("Stop the bus"): the server stamps when it starts and tells everyone, so every
+// copy of the bus brakes together. shift = seconds lost to earlier stops; ps..pe = the latest one.
+const HAIL_D = 7.4, HAIL_OPEN = [1.2, 6.2];                         // brake 1 s, doors open 5 s, pull away
+const BUS_COUNT = 3, BUSP = Array.from({ length: BUS_COUNT }, () => ({ shift:0, ps:0, pe:0 }));
+function busEff(i, t){
+  const p = BUSP[i], base = t - p.shift;
+  if (!p.pe || t <= p.ps) return base;
+  if (t >= p.pe) return base - (HAIL_D - 1);
+  const tau = t - p.ps;
+  const adv = tau < 1 ? tau - tau*tau/2 : tau > HAIL_D - 1 ? .5 + (tau - HAIL_D + 1)**2/2 : .5;
+  return p.ps - p.shift + adv;
+}
+function hailBus(b){
+  if (!b.st || b.hailing || (b.st.sp < 1 && b.st.stop >= 0)) return;
+  if (net.status === 'online') nsend({ t:'busStop', i:b.i });
+  else { const p = BUSP[b.i], now = busClock(); if (p.pe) p.shift += HAIL_D - 1; p.ps = now + .2; p.pe = p.ps + HAIL_D; }
+}
 
 function segT(p, a, b){
   const vx = b[0]-a[0], vz = b[1]-a[1], L2 = vx*vx + vz*vz || 1;
@@ -1833,8 +1850,8 @@ function buildBusRoute(){
   const gc = W(GC_AT);
   // ring road is 8..11 from the island centre; tight curves there so turning onto it never cuts towards the island
   const keepOut = pts => pts.map(p => { const dx = p[0]-gc[0], dz = p[1]-gc[1], d = Math.hypot(dx, dz);   // never closer than 10.6 to the island
-    return d < 10.6 && d > .01 ? [gc[0] + dx/d*10.6, gc[1] + dz/d*10.6] : p; });
-  const lane = pts => keepOut(fillet(roundabout(offsetLeft(pts, BUS_LANE), gc, 11), p => Math.hypot(p[0]-gc[0], p[1]-gc[1]) < 15 ? 6 : 7));
+    return d < 11.2 && d > .01 ? [gc[0] + dx/d*11.2, gc[1] + dz/d*11.2] : p; });
+  const lane = pts => keepOut(fillet(roundabout(offsetLeft(pts, BUS_LANE), gc, 11.8), p => Math.hypot(p[0]-gc[0], p[1]-gc[1]) < 15 ? 6 : 7));
   const turns = [];
   const turnAt = pts => {
     const e = pts[pts.length-1], p = pts[pts.length-2], L = Math.hypot(e[0]-p[0], e[1]-p[1]);
@@ -1850,7 +1867,21 @@ function buildBusRoute(){
   const hd = pts.map((p, i) => { const a = pts[(i-4+N)%N], b = pts[(i+4)%N]; return Math.atan2(b[0]-a[0], b[1]-a[1]); });
   // speed: slower in curves, zero at stops, gentle acceleration and braking
   const v = pts.map((p, i) => { const d = Math.abs(Math.atan2(Math.sin(hd[(i+3)%N]-hd[(i-3+N)%N]), Math.cos(hd[(i+3)%N]-hd[(i-3+N)%N]))); return Math.min(BUS_VMAX, Math.sqrt(BUS_LAT * (6*BUS_DS) / Math.max(1e-3, d))); });
-  const isStop = new Array(N).fill(-1); stopIdx.forEach((k, s) => { isStop[k] = s; v[k] = 0; });
+  const stops = BUS_STOPS.map((s, i) => ({ idx: stopIdx[i], name: s.n, major: true }));
+  // small stops in between, roughly every 140 blocks, on straight stretches away from the circle and the gates
+  const straight = i => Math.abs(Math.atan2(Math.sin(hd[(i+8)%N]-hd[(i-8+N)%N]), Math.cos(hd[(i+8)%N]-hd[(i-8+N)%N]))) < .12;
+  const farFrom = (i, k, d) => { const a = pts[i], b = pts[k]; return Math.hypot(a[0]-b[0], a[1]-b[1]) > d; };
+  const placeName = i => { let best = null, bd = 45; for (const q of PLACES) { const [qx, qz] = P(q.at); const d = Math.hypot(qx - pts[i][0], qz - pts[i][1]); if (d < bd && !/Gate|Circle/.test(q.n)) { bd = d; best = q.n; } } return best; };
+  const gcP = W(GC_AT), o0 = stopIdx[0];
+  for (let n = 0, run = 0; n < N; n++, run += BUS_DS) {
+    const i = (o0 + n) % N;
+    if (stops.some(st => st.idx === i)) { run = 0; continue; }
+    if (run < 140 || !straight(i) || Math.hypot(pts[i][0]-gcP[0], pts[i][1]-gcP[1]) < 30) continue;
+    if (stops.some(st => st.major && !farFrom(i, st.idx, 60))) continue;
+    const name = placeName(i); if (!name) continue;
+    stops.push({ idx: i, name, major: false }); run = 0;
+  }
+  const isStop = new Array(N).fill(-1); stops.forEach((st, s) => { isStop[st.idx] = s; v[st.idx] = 0; });
   const o = stopIdx[0];                                            // start the clock at Main Gate
   for (let n=1;n<=N;n++) { const i = (o+n)%N, j = (o+n-1)%N; v[i] = Math.min(v[i], Math.sqrt(v[j]*v[j] + 2*BUS_ACC*BUS_DS)); }
   for (let n=N-1;n>=0;n--) { const i = (o+n)%N, j = (o+n+1)%N; v[i] = Math.min(v[i], Math.sqrt(v[j]*v[j] + 2*BUS_DEC*BUS_DS)); }
@@ -1863,7 +1894,8 @@ function buildBusRoute(){
   }
   const nextAt = new Int8Array(N); let nx = 0;
   for (let n=2*N-1;n>=0;n--) { const s = isStop[order[n % N]]; if (n < N) nextAt[n] = nx; if (s >= 0) nx = s; }
-  BUS = { pts, hd, v, isStop, order, arrive, depart, period: t, stopIdx, nextAt, bays: [turns[1], turns[0]] };   // by stop: Main Gate, Velachery
+  stops[0].bay = turns[1]; stops[1].bay = turns[0];               // turning bays at Main Gate and Velachery Gate
+  BUS = { pts, hd, v, isStop, order, arrive, depart, period: t, stopIdx, nextAt, stops };
 }
 // where a bus is at a given moment
 function busAt(time){
@@ -1995,7 +2027,7 @@ function busStopSign(name){
   });
 }
 function buildBusStop(s){
-  const bay = BUS.bays[s];
+  const stop = BUS.stops[s], bay = stop.bay;
   if (bay) {                                       // a paved turning bay, cleared of trees and lamp posts
     const [bx, bz] = bay, r = BUS_BAY_R;
     for (let z = Math.floor(bz - r - 2); z <= bz + r + 2; z++) for (let x = Math.floor(bx - r - 2); x <= bx + r + 2; x++) {
@@ -2006,13 +2038,20 @@ function buildBusStop(s){
     }
   }
   const back = bay ? 10 : 2;                       // shelters stand clear of a turning bus
-  const k = (BUS.stopIdx[s] - back + BUS.pts.length) % BUS.pts.length, [px, pz] = BUS.pts[k], h = BUS.hd[k], lx = Math.cos(h), lz = -Math.sin(h);
-  const cx = px + lx*3.3, cz = pz + lz*3.3;
+  const k = (stop.idx - back + BUS.pts.length) % BUS.pts.length, [px, pz] = BUS.pts[k], h = BUS.hd[k], lx = Math.cos(h), lz = -Math.sin(h);
+  const side = stop.major ? 3.3 : 2.5, cx = px + lx*side, cz = pz + lz*side;
   // clear branches and lamp posts where the shelter goes
   for (let dz=-3;dz<=3;dz++) for (let dx=-3;dx<=3;dx++) for (let y=G+1;y<=G+6;y++) {
     const b = get(Math.floor(cx)+dx, y, Math.floor(cz)+dz); if (b === LEAVES || b === LAMP || (b === CONCRETE && y <= G+3)) set(Math.floor(cx)+dx, y, Math.floor(cz)+dz, AIR);
   }
   const g = new THREE.Group(); g.position.set(cx, G+1, cz); g.rotation.y = h;
+  if (!stop.major) {                               // a small stop: sign post and a bench
+    g.add(model([part(.08, 2.6, .08, 0x3b3f46, 0, 1.3, 1.2), part(.36, .06, 1.8, 0x8a5a33, .2, .5, -.4),
+      part(.08, .48, .08, 0x3b3f46, .2, .25, -1.1), part(.08, .48, .08, 0x3b3f46, .2, .25, .3)]));
+    const sg = new THREE.Mesh(new THREE.PlaneGeometry(.7, .44), new THREE.MeshLambertMaterial({ map: busStopSign(stop.name), side: THREE.DoubleSide }));
+    sg.position.set(0, 2.7, 1.2); sg.rotation.y = -Math.PI/2; g.add(sg);
+    scene.add(g); return;
+  }
   g.add(model([
     part(1.4, .06, 3.2, 0xb8bcc2, 0, .03, 0),
     part(.08, 2.3, .08, 0x3b3f46, .6, 1.15, -1.5), part(.08, 2.3, .08, 0x3b3f46, .6, 1.15, 1.5),
@@ -2022,7 +2061,7 @@ function buildBusStop(s){
     part(.06, 2.6, .06, 0x3b3f46, -.3, 1.3, 2.1),
   ]));
   const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.6), busGlass); panel.position.set(.66, 1.3, 0); panel.rotation.y = Math.PI/2; g.add(panel);
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(.8, .5), new THREE.MeshLambertMaterial({ map: busStopSign(BUS_STOPS[s].n), side: THREE.DoubleSide }));
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(.8, .5), new THREE.MeshLambertMaterial({ map: busStopSign(stop.name), side: THREE.DoubleSide }));
   sign.position.set(-.3, 2.75, 2.1); sign.rotation.y = -Math.PI/2; g.add(sign);
   scene.add(g);
 }
@@ -2034,9 +2073,9 @@ function spawnBuses(){
   // the island's kerb is laid flush (still a paved ring), so a turning bus's corners never catch it
   for (let z = gz-9; z <= gz+9; z++) for (let x = gx-9; x <= gx+9; x++) { const d = Math.hypot(x - gx, z - gz); if (d > 7 && d <= 8 && get(x, G+1, z) === PAVER) set(x, G+1, z, AIR); }
   for (let z = gz-15; z <= gz+15; z++) for (let x = gx-15; x <= gx+15; x++) {
-    const d = Math.hypot(x - gx, z - gz); if (d <= 11.9 || d > 14) continue;
-    for (let y = G+1; y <= G+9; y++) { const b = get(x, y, z); if (b === LEAVES || b === LOG || b === LAMP || b === HEDGE || b === GRASS || b === CONCRETE) set(x, y, z, AIR); }
-    const top = get(x, G, z); if (top === GRASS || top === DIRT || top === SAND) set(x, G, z, PAVER);
+    const d = Math.hypot(x - gx, z - gz); if (d <= 10.9 || d > 14.5) continue;
+    for (let y = G+1; y <= G+9; y++) { const b = get(x, y, z); if (b === LEAVES || b === LOG || b === LAMP || b === HEDGE || b === GRASS || (b === CONCRETE && d <= 13.6)) set(x, y, z, AIR); }
+    const top = get(x, G, z); if (top !== WATER && top !== CONCRETE) set(x, G, z, d <= 13.5 ? ROAD : PAVER);   // a wider ring road
   }
   // lamp posts the bus would brush on a turn are moved out of its way (removed)
   for (let i = 0; i < BUS.pts.length; i += 2) {
@@ -2048,9 +2087,9 @@ function spawnBuses(){
       if (lamp) for (let y = G+1; y <= G+6; y++) { const b = get(x, y, z); if (b === LAMP || b === CONCRETE) set(x, y, z, AIR); }
     }
   }
-  BUS_STOPS.forEach((s, i) => buildBusStop(i));
-  for (let i=0;i<2;i++) {
-    const m = makeBus(), b = { ...m, i, kind:'bus', phase: i*BUS.period/2, x:0, y:G+1, z:0, heading:0, speed:0, st:null };
+  BUS.stops.forEach((st, i) => buildBusStop(i));
+  for (let i=0;i<BUS_COUNT;i++) {
+    const m = makeBus(), b = { ...m, i, kind:'bus', phase: i*BUS.period/BUS_COUNT, x:0, y:G+1, z:0, heading:0, speed:0, st:null };
     b.g.userData.bus = b; scene.add(b.g); buses.push(b);
   }
   updateBuses(0);
@@ -2064,7 +2103,16 @@ function updateBuses(dt){
   if (!BUS) return;
   const now = busClock();
   for (const b of buses) {
-    const st = busAt(now + b.phase), was = b.st;
+    const st = busAt(busEff(b.i, now) + b.phase), was = b.st;
+    const p = BUSP[b.i], tau = now - p.ps;
+    b.hailing = !!p.pe && tau >= 0 && tau < HAIL_D;
+    if (b.hailing) {                                                // a requested stop overrides the doors
+      st.sp *= tau < 1 ? 1 - tau : tau > HAIL_D - 1 ? tau - HAIL_D + 1 : 0;
+      const [o0, o1] = HAIL_OPEN;
+      st.door = tau < o0 - .2 ? 0 : tau < o0 ? (tau - o0 + .2)/.2 : tau < o1 ? 1 : Math.max(0, 1 - (tau - o1)/.2);
+      st.open = tau >= o0 && tau < o1;
+      st.left = st.open ? Math.ceil(o1 - tau) : 0;
+    }
     b.st = st; b.x = st.x; b.z = st.z; b.heading = st.h; b.speed = st.sp;
     b.g.position.set(st.x, G+1, st.z); b.g.rotation.y = st.h;
     for (const w of b.wheels) w.rotation.x += st.sp*dt/.5;
@@ -2074,7 +2122,7 @@ function updateBuses(dt){
   if (onBus) {
     const b = onBus.b, [sx, sy, sz] = BUS_SEATS[onBus.seat], s = Math.sin(b.heading), c = Math.cos(b.heading);
     player.pos.set(b.x + c*sx + s*sz, G+1 + sy, b.z - s*sx + c*sz); player.vel.set(0, 0, 0);
-    const label = 'On the bus · next: ' + BUS_STOPS[b.st.next].n;
+    const label = 'On the bus · next: ' + BUS.stops[b.st.next].name;
     if ($('mode').textContent !== label) $('mode').textContent = label;
   }
 }
@@ -2724,7 +2772,9 @@ function updateCamera(dt){
 // ============================================================
 let focus = null;
 function findFocus(){
-  if (onBus) return onBus.b.st && onBus.b.st.open ? { type:'busExit', text:'Get off the bus' } : null;
+  if (onBus) { const b = onBus.b, st = b.st;
+    if (st && st.open) return { type:'busExit', text: 'Get off the bus' + (st.left ? ' · ' + st.left + 's' : '') };
+    return st && !b.hailing && st.sp > 1 ? { type:'busHail', text:'Stop the bus here', o:b } : null; }
   if (driving || riding) return { type:'exit', text:'Get out' };
   if (act.seated) return { type:'stand', text:'Stand up' };
   if (act.batting) return { type:'swing', text:'Swing!' };
@@ -2741,7 +2791,10 @@ function findFocus(){
     if (!b.remote) consider('drive', b, r, VSPEC[b.kind].prompt, 0, seats ? (pl ? 'Back seat' : 'Sit in') : null);   // free: drive, or just sit
     else if (seats && !b.air) consider('ride', b, r, pl ? 'Get in the back seat' : 'Get in the e-buggy');           // someone's driving: passenger only
   }
-  for (const b of buses) if (b.st && b.st.open) for (const d of busDoorPoints(b)) consider('bus', d, 3.4, 'Get on the bus', -1.5);
+  for (const b of buses) {
+    if (b.st && b.st.open) for (const d of busDoorPoints(b)) consider('bus', d, 3.4, 'Get on the bus' + (b.st.left ? ' · ' + b.st.left + 's' : ''), -1.5);
+    else if (b.st && !b.hailing && b.st.sp > 1) consider('busHail', b, 9, 'Stop the bus', -.5);
+  }
   if (!net.chatWith) for (const p of net.peers.values()) if (!p.vehicle) consider('chat', p, 4, `Chat with ${p.name}`, -1.5);
   for (const d of deer) consider('deer', d, 5.5, d.greeted ? 'Pat the deer' : d.kind === 'buck' ? 'Say hi to the blackbuck' : 'Say hi to the spotted deer', .5);
   for (const m of monkeys) consider('monkey', m, 3.6, 'Wave at the monkey', .5);
@@ -2771,6 +2824,7 @@ function interact(){
   if (!focus) return;
   if (focus.type === 'bus') return boardBus(focus.o.bus);
   if (focus.type === 'busExit') return leaveBus();
+  if (focus.type === 'busHail') return hailBus(focus.o);
   if (focus.type === 'drive') return enterBuggy(focus.o);
   if (focus.type === 'ride') return enterSeat(focus.o);
   if (focus.type === 'exit') return riding ? leaveSeat() : exitBuggy(false);
@@ -3213,6 +3267,7 @@ function onNet(m){
     case 'welcome':
       net.id = m.id; net.online = m.online; net.status = 'online'; net.retry = 0;
       if (m.now) net.clockOff = m.now - Date.now();                  // the buses run on the server's clock
+      if (m.busP) m.busP.forEach((p, i) => Object.assign(BUSP[i], p));
       // Reconnecting after a deploy keeps this page's old code running. If the server is on a newer
       // build, offer a refresh rather than reloading mid-game and losing where you are.
       if (m.build) { if (!net.build) net.build = m.build; else if (m.build !== net.build) $('upd').hidden = false; }
@@ -3233,6 +3288,7 @@ function onNet(m){
       net.online = m.n; setOnline();
       if (state === 'who') whoRefresh();
       break;
+    case 'busPause': Object.assign(BUSP[m.i], { shift:m.shift, ps:m.ps, pe:m.pe }); break;
     case 'full': toast('Server', 'Campus is full', 'Too many students online. Try again in a few minutes.'); break;
     case 'bye':
       // the server is restarting for an update: no need to reload, we reconnect on our own
@@ -3767,7 +3823,7 @@ function initTouch(){
   $('bPause').onclick = pauseGame;
 
   // keep labels in step with what the buttons will do
-  const USE = { exit:'Get out', drive:'Drive', ride:'Get in', chat:'Chat', deer:'Say hi', monkey:'Wave', croc:'Look', dance:'Dance', kick:'Kick', bus:'Board', busExit:'Get off', bat:'Bat', seat:'Sit', board:'Events', swim:'Race', fish:'Fish', stand:'Stand', swing:'Swing', reel:'Reel' };
+  const USE = { exit:'Get out', drive:'Drive', ride:'Get in', chat:'Chat', deer:'Say hi', monkey:'Wave', croc:'Look', dance:'Dance', kick:'Kick', bus:'Board', busExit:'Get off', busHail:'Stop bus', bat:'Bat', seat:'Sit', board:'Events', swim:'Race', fish:'Fish', stand:'Stand', swing:'Swing', reel:'Reel' };
   let lastSig = '';
   touchLabels = () => {
     if (!running && keys.has('ShiftLeft') && !sinking) keys.delete('ShiftLeft');
@@ -4492,7 +4548,7 @@ if (new URLSearchParams(location.search).has('debug')) window.iitm = {
   look: (y,p) => { yaw = y; pitch = p; }, drivingNow: () => driving, updatePrompt, focusNow: () => focus && focus.text,
   stateNow: () => state, act: () => act,
   view: () => ({ ...view, mapW, mapH }), openWhoNow: () => openWho(), openMapNow: openMap, toastNow: (a,b,c) => toast(a,b,c),
-  busAt: t => busAt(t), busRoute: () => BUS && { period: BUS.period, N: BUS.pts.length, stops: BUS.stopIdx.map(k => BUS.pts[k]), pts: BUS.pts },
+  busAt: t => busAt(t), busP: () => BUSP, hailNow: i => hailBus(buses[i]), busRoute: () => BUS && { period: BUS.period, N: BUS.pts.length, stops: BUS.stops.map(st => ({ name: st.name, major: st.major, at: BUS.pts[st.idx] })), pts: BUS.pts },
   busesNow: () => buses.map(b => ({ i: b.i, ...b.st })), onBusNow: () => onBus && { i: onBus.b.i, seat: onBus.seat },
   boardBusNow: i => boardBus(buses[i]), leaveBusNow: f => leaveBus(f), busClockNow: () => busClock(),
   skyGround: (x,z) => skyGround(x,z), blockId: (x,y,z) => get(Math.floor(x),Math.floor(y),Math.floor(z)), consts: () => ({ G, WX, WZ, WH, LOG, LEAVES, ROAD, CONCRETE, PAVER }), roadSegs: () => SEGS.map(s => ({ ...s })),
