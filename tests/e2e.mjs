@@ -151,11 +151,17 @@ try {
   check('Clicking a discovered place travels there', mg < 3 && !(await A.isVisible('#mapview')), `${mg.toFixed(1)} blocks away`);
 
   // e-buggy
+  // A parked buggy can sit beside something else you can use (an events board, a café), whose prompt
+  // then wins; try the lone buggies until one offers to be driven.
   const bg = await A.evaluate(() => {
-    const b = iitm.buggies.find(v => v.kind === 'buggy' && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 6));
-    const lx = Math.cos(b.heading), lz = -Math.sin(b.heading);
-    iitm.teleport(b.x + lx * 2.2, b.z + lz * 2.2); iitm.updatePrompt();
-    return { vid: b.vid, text: iitm.focusNow() };
+    let last = null;
+    for (const b of iitm.buggies.filter(v => v.kind === 'buggy' && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 6))) {
+      const lx = Math.cos(b.heading), lz = -Math.sin(b.heading);
+      iitm.teleport(b.x + lx * 2.2, b.z + lz * 2.2); iitm.updatePrompt();
+      last = { vid: b.vid, text: iitm.focusNow() };
+      if (last.text === 'Drive the e-buggy') break;
+    }
+    return last;
   });
   check('Prompt offers to drive a nearby e-buggy', bg.text === 'Drive the e-buggy', bg.text);
   await A.keyboard.press('KeyE'); await sleep(200);
@@ -372,7 +378,9 @@ try {
 
   // e-buggy passengers: sit in a parked buggy, then ride along while someone else drives
   const bv = await A.evaluate(() => {
-    const b = iitm.buggies.find(v => v.kind === 'buggy' && !v.remote && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 7));
+    // a lone buggy whose Drive prompt is not crowded out by something else usable beside it
+    const lone = iitm.buggies.filter(v => v.kind === 'buggy' && !v.remote && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 7));
+    const b = lone.find(v => { iitm.teleport(v.x + Math.cos(v.heading)*2.2, v.z - Math.sin(v.heading)*2.2); iitm.updatePrompt(); return iitm.focusNow() === 'Drive the e-buggy'; }) || lone[0];
     iitm.teleport(b.x + Math.cos(b.heading) * 2.2, b.z - Math.sin(b.heading) * 2.2); return b.vid;
   });
   await B.evaluate(v => { const b = iitm.buggies[v]; iitm.teleport(b.x - Math.cos(b.heading) * 2.2, b.z + Math.sin(b.heading) * 2.2); }, bv);
@@ -434,7 +442,10 @@ try {
   await touchEv('touchMove', [{ x: 420, y: 200, id: 2 }]);
   await touchEv('touchEnd', []);
   check('Dragging on the world turns the camera', Math.abs((await M.evaluate(() => iitm.cam().yaw)) - yaw0) > .3);
-  await M.evaluate(() => { const b = iitm.buggies.find(v => v.kind === 'buggy' && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 6)); iitm.teleport(b.x + Math.cos(b.heading) * 2.2, b.z - Math.sin(b.heading) * 2.2); });
+  await M.evaluate(() => {
+    const lone = iitm.buggies.filter(v => v.kind === 'buggy' && !iitm.buggies.some(o => o !== v && Math.hypot(o.x - v.x, o.z - v.z) < 6));
+    lone.find(v => { iitm.teleport(v.x + Math.cos(v.heading) * 2.2, v.z - Math.sin(v.heading) * 2.2); iitm.updatePrompt(); return iitm.focusNow() === 'Drive the e-buggy'; });
+  });
   check('Use button offers to drive a nearby buggy', await until(async () => (await M.textContent('#tUse')) === 'Drive', 2000), await M.textContent('#tUse'));
   check('A Sit in button appears next to a free buggy', await M.isVisible('#tSit'));
   await M.tap('#tUse');
